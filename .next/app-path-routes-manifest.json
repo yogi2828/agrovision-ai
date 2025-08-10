@@ -1,0 +1,15 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
+  "/page": "/",
+  "/(app)/chat/page": "/chat",
+  "/(app)/dashboard/page": "/dashboard",
+  "/(app)/history/page": "/history",
+  "/(app)/diagnose/page": "/diagnose",
+  "/(app)/history/[id]/page": "/history/[id]",
+  "/(app)/profile/page": "/profile",
+  "/(auth)/login/page": "/login",
+  "/terms-of-use/page": "/terms-of-use",
+  "/privacy-policy/page": "/privacy-policy",
+  "/(auth)/signup/page": "/signup"
+}
