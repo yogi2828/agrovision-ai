@@ -49,6 +49,8 @@ const DiagnosePlantHealthOutputSchema = z.object({
   }).describe("General plant care recommendations."),
   budgetEstimate: z.string().describe("A general budget estimate for the treatments (e.g., 'Low (under $15)', 'Moderate ($15-$30)', 'High (over $30)') with a brief explanation."),
   summary: z.string().describe("A concise one-paragraph summary of the entire diagnosis and key actions."),
+  feedbackRating: z.number().optional().describe("The user's feedback rating for the diagnosis (1-5 stars)."),
+  feedbackSubmittedAt: z.string().optional().describe("The timestamp when the feedback was submitted."),
 });
 export type DiagnosePlantHealthOutput = z.infer<typeof DiagnosePlantHealthOutputSchema>;
 
