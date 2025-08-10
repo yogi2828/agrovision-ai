@@ -7,7 +7,7 @@ import { diagnosePlantHealth, type DiagnosePlantHealthOutput } from '@/ai/flows/
 import { Loader2, Terminal, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
-import { saveDiagnosisToHistory } from '@/lib/firebase/firestore';
+import { saveDiagnosisToHistory, updateDiagnosisFeedback } from '@/lib/firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/context/language-context';
@@ -20,6 +20,7 @@ export default function DiagnosePage() {
   const [result, setResult] = useState<DiagnosePlantHealthOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedDiagnosisId, setSavedDiagnosisId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { language } = useLanguage();
@@ -60,7 +61,8 @@ export default function DiagnosePage() {
         return;
     }
     try {
-        await saveDiagnosisToHistory(user.uid, result);
+        const docRef = await saveDiagnosisToHistory(user.uid, result);
+        setSavedDiagnosisId(docRef.id);
         logAnalyticsEvent('save_history', { plant: result.plantIdentification.commonName });
         toast({
             title: 'Saved to My History',
@@ -75,6 +77,33 @@ export default function DiagnosePage() {
         });
     }
   }
+
+  const handleFeedbackSubmit = async (rating: number) => {
+    if (!user || !savedDiagnosisId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Cannot submit feedback without a saved diagnosis.'
+      });
+      return;
+    }
+    try {
+      // This function will be created in firestore.ts next
+      await updateDiagnosisFeedback(user.uid, savedDiagnosisId, rating);
+      logAnalyticsEvent('submit_feedback', { rating });
+      toast({
+        title: 'Feedback Submitted',
+        description: 'Thank you for your feedback!'
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Feedback Failed',
+        description: 'Could not submit feedback.'
+      });
+    }
+  };
 
   return (
     <motion.div 
@@ -137,7 +166,7 @@ export default function DiagnosePage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                   >
-                      <DiagnosisResult result={result} image={imageData} onReset={handleReset} onSave={handleSave} />
+                      <DiagnosisResult result={result} image={imageData} onReset={handleReset} onSave={handleSave} onFeedbackSubmit={handleFeedbackSubmit} />
                   </motion.div>
               </AnimatePresence>
             )}

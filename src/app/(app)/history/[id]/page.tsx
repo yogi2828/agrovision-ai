@@ -86,6 +86,7 @@ export default function HistoryDetailPage() {
         onReset={handleBack}
         onSave={() => {}}
         isHistoryView={true}
+        onFeedbackSubmit={() => {}}
       />
     </motion.div>
   );

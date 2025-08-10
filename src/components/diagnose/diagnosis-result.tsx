@@ -7,16 +7,32 @@ import type { DiagnosePlantHealthOutput } from "@/ai/flows/diagnose-plant-health
 import Image from 'next/image';
 import Link from "next/link";
 
+import React, { useState } from "react";
+import { Star } from "lucide-react";
+
 interface DiagnosisResultProps {
   result: DiagnosePlantHealthOutput;
   image: string | null;
   onReset: () => void;
   onSave: () => void;
   isHistoryView?: boolean;
+  onFeedbackSubmit: (rating: number) => void;
 }
 
 export function DiagnosisResult({ result, image, onReset, onSave, isHistoryView = false }: DiagnosisResultProps) {
   const isHealthy = !result.diseaseName || result.diseaseName.toLowerCase() === 'healthy';
+
+  const [feedbackRating, setFeedbackRating] = useState(0);
+
+  const handleStarClick = (rating: number) => {
+    setFeedbackRating(rating);
+  };
+
+  const handleSubmitFeedback = () => {
+    if (feedbackRating > 0) {
+      onFeedbackSubmit(feedbackRating);
+    }
+  };
 
   const TreatmentListItem = ({ name, description, productUrl }: { name: string, description: string, productUrl?: string }) => (
     <li className="mb-2">
@@ -150,6 +166,49 @@ export function DiagnosisResult({ result, image, onReset, onSave, isHistoryView 
                 </CardContent>
             </Card>
        )}
+
+      {!isHistoryView && (
+        <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card border">
+          <h3 className="text-lg font-semibold">Rate this diagnosis:</h3>
+          <div className="flex items-center space-x-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`cursor-pointer ${
+                  feedbackRating >= star ? "text-yellow-400" : "text-gray-300"
+                }`}
+                onClick={() => handleStarClick(star)}
+                size={24}
+              />
+            ))}
+          </div>
+          <Button onClick={handleSubmitFeedback} disabled={feedbackRating === 0}>
+            Submit Feedback
+          </Button>
+        </div>
+      )}
+
+      {isHistoryView && result.feedbackRating && (
+        <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card border">
+          <h3 className="text-lg font-semibold">Your Feedback:</h3>
+          <div className="flex items-center space-x-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`${
+                  result.feedbackRating >= star ? "text-yellow-400" : "text-gray-300"
+                }`}
+                size={24}
+              />
+            ))}
+          </div>
+          {result.feedbackSubmittedAt && (
+            <p className="text-sm text-muted-foreground">
+              Submitted on: {new Date(result.feedbackSubmittedAt.toDate()).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row justify-end items-center gap-4 p-4 rounded-lg bg-card border">
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">

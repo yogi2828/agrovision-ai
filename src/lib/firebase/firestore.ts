@@ -12,6 +12,7 @@ import {
   getDoc,
   where,
   writeBatch,
+  updateDoc,
 } from 'firebase/firestore';
 import { app } from '@/config/firebase';
 import type { DiagnosePlantHealthOutput } from '@/ai/flows/diagnose-plant-health';
@@ -22,6 +23,8 @@ export interface DiagnosisHistoryRecord extends DiagnosePlantHealthOutput {
   id: string;
   userId: string;
   createdAt: Timestamp;
+  feedbackRating?: number;
+  feedbackSubmittedAt?: Timestamp;
 }
 
 // Function to save a diagnosis to history
@@ -126,3 +129,24 @@ export const deleteAllUserHistory = async (userId: string) => {
         throw new Error("Could not delete all user history.");
     }
 }
+
+// Function to update a diagnosis with feedback
+export const updateDiagnosisFeedback = async (
+  userId: string,
+  diagnosisId: string,
+  rating: number
+) => {
+  try {
+    if (!userId || !diagnosisId) {
+      throw new Error("User ID and Diagnosis ID are required to update feedback.");
+    }
+    const diagnosisRef = doc(db, `users/${userId}/history`, diagnosisId);
+    await updateDoc(diagnosisRef, {
+      feedbackRating: rating,
+      feedbackSubmittedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error('Error updating diagnosis feedback:', error);
+    throw new Error('Could not update diagnosis feedback.');
+  }
+};
