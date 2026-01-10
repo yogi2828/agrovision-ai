@@ -42,20 +42,30 @@ const prompt = ai.definePrompt({
   input: {schema: DetectDiseaseInputSchema},
   output: {schema: DetectDiseaseOutputSchema},
   model: 'gemini-pro-vision',
-  prompt: `You are an expert in plant pathology. Your task is to analyze the provided image of a plant and return a detailed diagnosis in JSON format.
+  prompt: `You are an expert in plant pathology. Analyze the provided image and return a detailed diagnosis.
 
-  Analyze the image and identify the plant and any diseases present. You must provide the following information:
-  - plantName: The common name of the plant.
-  - diseaseName: The name of the disease. If the plant is healthy, return "Healthy".
-  - confidenceLevel: A number between 0 and 1 indicating your confidence in the diagnosis.
-  - symptoms: A brief description of the visual symptoms.
-  - causes: The common causes of the disease.
-  - treatment: An object with two properties: 'organic' and 'chemical' treatment options.
+  Your response MUST be a valid JSON object that conforms to the specified schema. Do not include any text or formatting outside of the JSON object.
 
-  If the image is not a plant, please indicate that in the diseaseName and symptoms fields.
+  Image: {{media url=photoDataUri}}
 
-  Image: {{media url=photoDataUri}}`,
+  Provide your response inside the 'JSON_RESPONSE_BEGIN' and 'JSON_RESPONSE_END' markers.
+
+  JSON_RESPONSE_BEGIN
+  {
+    "plantName": "The common name of the plant.",
+    "diseaseName": "The name of the disease. If healthy, return 'Healthy'. If not a plant, return 'Not a plant'.",
+    "confidenceLevel": 0.95,
+    "symptoms": "A brief description of visual symptoms like leaf spots, discoloration, etc.",
+    "causes": "Common causes of the disease (e.g., fungal infection, pests, nutrient deficiency).",
+    "treatment": {
+      "organic": "Recommended organic treatment.",
+      "chemical": "Recommended chemical treatment."
+    }
+  }
+  JSON_RESPONSE_END
+  `,
 });
+
 
 const detectDiseaseFlow = ai.defineFlow(
   {
