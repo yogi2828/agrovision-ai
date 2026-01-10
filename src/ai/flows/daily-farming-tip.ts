@@ -31,7 +31,7 @@ const dailyFarmingTipPrompt = ai.definePrompt({
   name: 'dailyFarmingTipPrompt',
   input: {schema: DailyFarmingTipInputSchema},
   output: {schema: DailyFarmingTipOutputSchema},
-  model: 'googleai/gemini-1.0-pro',
+  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an AI farming assistant providing daily tips to farmers.
 
   Generate a single, actionable farming tip relevant to the current season and location.
