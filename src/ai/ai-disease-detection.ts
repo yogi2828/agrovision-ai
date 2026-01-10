@@ -41,12 +41,10 @@ const prompt = ai.definePrompt({
   name: 'detectDiseasePrompt',
   input: {schema: DetectDiseaseInputSchema},
   output: {schema: DetectDiseaseOutputSchema},
-  model: 'gemini-pro-vision',
-  prompt: `You are an expert in plant pathology. Analyze the provided image and return a detailed diagnosis.
+  model: 'gemini-1.5-pro-latest',
+  prompt: `You are an expert in plant pathology. Analyze the provided image and return a detailed diagnosis in valid JSON format.
 
-  Your response MUST be a valid JSON object that conforms to the specified schema. Do not include any text or formatting outside of the JSON object.
-
-  Image: {{media url=photoDataUri}}`,
+Image: {{media url=photoDataUri}}`,
 });
 
 
