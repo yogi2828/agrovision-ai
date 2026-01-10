@@ -144,8 +144,7 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "google.com"
+      "anonymous"
     ]
   },
   "firestore": {
@@ -157,7 +156,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles.  User ID is used as the document ID.",
+          "description": "Stores user profiles.  Path-based ownership ensures only the user can access their own profile.",
           "params": [
             {
               "name": "userId",
@@ -167,17 +166,17 @@
         }
       },
       {
-        "path": "/users/{userId}/detections/{detectionId}",
+        "path": "/users/{userId}/plantDiseaseDetections/{detectionId}",
         "definition": {
           "entityName": "PlantDiseaseDetection",
           "schema": {
             "$ref": "#/backend/entities/PlantDiseaseDetection"
           },
-          "description": "Stores plant disease detection records for each user. User ID is denormalized, allowing independent authorization. Detections are owned by the user.",
+          "description": "Stores plant disease detection records for each user. Path-based ownership enables secure listing of detection records for a specific user.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user who owns the detection."
+              "description": "The unique identifier for the user."
             },
             {
               "name": "detectionId",
@@ -187,13 +186,13 @@
         }
       },
       {
-        "path": "/users/{userId}/tips/{tipId}",
+        "path": "/users/{userId}/dailyFarmingTips/{tipId}",
         "definition": {
           "entityName": "DailyFarmingTip",
           "schema": {
             "$ref": "#/backend/entities/DailyFarmingTip"
           },
-          "description": "Stores daily farming tips for each user. User ID is denormalized, enabling authorization independence. Tips are owned by the user.",
+          "description": "Stores daily farming tips for each user. Path-based ownership ensures that only the user can access their own tips.",
           "params": [
             {
               "name": "userId",
@@ -207,6 +206,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily debuggable backend for the AgroVision AI application. It prioritizes authorization independence by denormalizing user IDs into subcollections to avoid `get()` calls in security rules.  The structure follows a hierarchical path-based ownership model where a User owns PlantDiseaseDetections and DailyFarmingTips, enabling clear and efficient security rules based solely on `request.auth.uid`. This approach eliminates authorization dependencies and ensures that atomic operations (transactions/batches) can be performed without compromising security. The chosen structure also readily supports listing operations (QAPs).  The collections are segregated based on access needs: user data is stored under `/users/{userId}`, detections under `/users/{userId}/detections`, and daily tips under `/users/{userId}/tips`. This ensures that each collection has a homogeneous security posture, simplifying rules and enhancing maintainability. The design incorporates explicit state modeling (though not explicitly defined in the provided entities), semantic naming conventions, and denormalized authorization contexts. This combination makes the structure predictable, debuggable, and secure."
+    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily debuggable backend for the AgroVision AI application. It prioritizes authorization independence by denormalizing user IDs into subcollections to avoid `get()` calls in security rules. This supports atomic operations and simplifies debugging. Structural segregation ensures that collections contain documents with homogeneous security needs. Access modeling utilizes path-based ownership for user-owned data (plant disease detections and daily farming tips) to simplify security rules and improve efficiency. The structure supports the required QAPs by using segregation (separate collections for different data types) and path-based ownership to enable secure list operations.  The structure stores user profiles separately in `/users/{userId}`.  Plant disease detections and daily farming tips are stored under the respective user's document for easy retrieval and secure data access, enabling the application to read these records efficiently and securely. This structure is essential to guarantee Authorization Independence (as is requested explicitly in the prompt)."
   }
 }

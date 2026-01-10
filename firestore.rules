@@ -1,95 +1,143 @@
 /**
- * This ruleset enforces a strict, hierarchical user-ownership security model for the AgroVision AI application.
+ * Core Philosophy: This ruleset enforces a strict user-ownership model where all user-generated data is
+ * stored within a dedicated user-specific data tree. Access is controlled based on the user's
+ * authenticated ID present in the document path, ensuring users can only interact with their own data.
  *
- * Core Philosophy:
- * The fundamental principle is that users have complete control over their own data, and no one else can access it.
- * All data is isolated within a user-specific data tree, making security checks simple and efficient.
- *
- * Data Structure:
- * All application data is nested under the `/users/{userId}` path. This top-level collection holds user profile documents.
- * Each user document contains two primary subcollections: `/detections` for plant disease analysis records and `/tips` for daily farming advice.
+ * Data Structure: All data is organized hierarchically under the `/users/{userId}` collection. This includes
+ * the user's profile document and subcollections for their private data like `plantDiseaseDetections`
+ * and `dailyFarmingTips`. This structure is designed for security and query performance.
  *
  * Key Security Decisions:
- * - Strict Ownership: All create, read, update, and delete operations are restricted to the authenticated user who owns the data tree (`/users/{request.auth.uid}`).
- * - No Public Data: There are no publicly readable collections. A user must be signed in to access any data.
- * - User Privacy: Listing all users from the root `/users` collection is explicitly forbidden to prevent user enumeration and protect privacy.
- * - Relational Integrity: On creation, rules verify that the `userId` (or `id` for the user profile) within a document's data matches the user ID in the document's path. This link is enforced as immutable on updates.
+ * - User Enumeration is Disabled: Listing documents from the top-level `/users` collection is explicitly
+ *   denied to prevent malicious actors from scraping user profiles.
+ * - Strict Ownership: A user can only read, write, update, or delete documents located under their
+ *   own path (e.g., `/users/THEIR_OWN_ID/...`). Cross-user access is completely forbidden.
+ * - Path and Data Integrity: Rules enforce that the `userId` field within subcollection documents
+ *   matches the `{userId}` from the path, ensuring data consistency and preventing records from being
+ *   associated with the wrong user. This internal `userId` is immutable after creation.
  *
- * Denormalization for Authorization:
- * The data structure is designed for optimal security rule performance. By nesting all records under a user-specific path (`/users/{userId}`),
- * we can authorize access using a simple path-based check (`isOwner(userId)`) without needing any costly `get()` or `exists()` calls to other documents.
+ * Denormalization for Authorization: The entire data model is built on the principle of path-based
+ * authorization. By nesting all user-specific data under a path containing their UID (`/users/{userId}`),
+ * we avoid slow and costly `get()` calls to other documents for authorization checks. This makes the
+ * rules fast, efficient, and simple to audit.
  *
- * Structural Segregation:
- * The application data is naturally segregated by user. The `/users/{userId}` path serves as a secure container for all of a user's private
- * information, including their profile, disease detections, and farming tips, ensuring a clean and secure separation of data between users.
+ * Structural Segregation: User profiles (`/users/{userId}`), disease detections (`plantDiseaseDetections`),
+ * and farming tips (`dailyFarmingTips`) are segregated into their own collections or subcollections.
+ * This ensures that security rules applied to one type of data do not inadvertently affect another.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for reusable logic
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    // Checks if the requesting user's UID matches the document's owner ID in the path.
+
+    /**
+     * Checks if the authenticated user's ID matches the provided userId.
+     * This is the primary function for enforcing data ownership.
+     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-    
-    // Checks for ownership on an existing document. Used for safe updates and deletes.
+
+    /**
+     * Checks for ownership on an existing document. Used for update and delete
+     * operations to prevent acting on non-existent data.
+     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
+    
+    /**
+     * Validates that a user creating their own profile document sets the
+     * internal 'id' field to match their auth UID.
+     */
+    function isCreatingOwnProfile(userId) {
+      return isOwner(userId) && request.resource.data.id == userId;
+    }
+    
+    /**
+     * Validates that the internal 'id' of a user profile is not changed on update.
+     */
+    function isUpdatingOwnProfile() {
+      // The `id` field must not be changed after creation.
+      return request.resource.data.id == resource.data.id;
+    }
+    
+    /**
+     * Validates that a document being created in a user's subcollection
+     * has its internal 'userId' field correctly set to the owner's UID from the path.
+     */
+    function isCreatingOwnSubcollectionDoc(userId) {
+      return isOwner(userId) && request.resource.data.userId == userId;
+    }
+
+    /**
+     * Validates that the internal 'userId' of a subcollection document
+     * is not changed on update. This enforces immutability for the ownership link.
+     */
+    function isUpdatingOwnSubcollectionDoc() {
+      // The `userId` foreign key must not be changed after creation.
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
 
     /**
      * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (create) A new user signing up (e.g., auth.uid: 'user_abc') can create their own profile document at `/users/user_abc`.
-     * @allow (get) An authenticated user (e.g., auth.uid: 'user_abc') can read their own profile at `/users/user_abc`.
-     * @deny (list) No user, authenticated or not, can list all documents in the `/users` collection.
-     * @deny (update) A user (e.g., auth.uid: 'user_xyz') cannot update another user's profile at `/users/user_abc`.
+     * @allow (get, update, delete) A signed-in user accessing their own profile document.
+     * @allow (create) A new user creating their own profile document for the first time.
+     * @deny (list) Any user, to prevent user enumeration and data scraping.
+     * @deny (get, create, update, delete) A user trying to access another user's profile.
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isCreatingOwnProfile(userId);
+      allow update: if isExistingOwner(userId) && isUpdatingOwnProfile();
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Manages access to a user's private plant disease detection records.
-     * @path /users/{userId}/detections/{detectionId}
-     * @allow (create) An authenticated user ('user_abc') can create a new detection record in their own subcollection (`/users/user_abc/detections/detection_123`).
-     * @allow (list) An authenticated user ('user_abc') can list all detection records within their own subcollection.
-     * @deny (get) A user ('user_xyz') cannot read a detection record belonging to another user (`/users/user_abc/detections/detection_123`).
-     * @deny (delete) A user ('user_xyz') cannot delete a detection record belonging to another user.
-     * @principle Enforces strict data ownership within a user's private subcollection.
+     * @description Controls access to a user's private plant disease detection records.
+     * @path /users/{userId}/plantDiseaseDetections/{detectionId}
+     * @allow (get, list, create, update, delete) A user managing their own detection records.
+     * @deny (get, list, create, update, delete) Any user trying to access another user's records.
+     * @principle Enforces strict data ownership within a user-specific subcollection.
      */
-    match /users/{userId}/detections/{detectionId} {
+    match /users/{userId}/plantDiseaseDetections/{detectionId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow create: if isCreatingOwnSubcollectionDoc(userId);
+      allow update: if isExistingOwner(userId) && isUpdatingOwnSubcollectionDoc();
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Manages access to a user's private daily farming tips.
-     * @path /users/{userId}/tips/{tipId}
-     * @allow (create) An authenticated user ('user_abc') can create a new tip record in their own subcollection (`/users/user_abc/tips/tip_456`).
-     * @allow (list) An authenticated user ('user_abc') can list all tip records within their own subcollection.
-     * @deny (get) A user ('user_xyz') cannot read a tip record belonging to another user (`/users/user_abc/tips/tip_456`).
-     * @deny (delete) A user ('user_xyz') cannot delete a tip record belonging to another user.
-     * @principle Enforces strict data ownership within a user's private subcollection.
+     * @description Controls access to a user's private daily farming tips.
+     * @path /users/{userId}/dailyFarmingTips/{tipId}
+     * @allow (get, list, create, update, delete) A user managing their own farming tips.
+     * @deny (get, list, create, update, delete) Any user trying to access another user's tips.
+     * @principle Enforces strict data ownership within a user-specific subcollection.
      */
-    match /users/{userId}/tips/{tipId} {
+    match /users/{userId}/dailyFarmingTips/{tipId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow create: if isCreatingOwnSubcollectionDoc(userId);
+      allow update: if isExistingOwner(userId) && isUpdatingOwnSubcollectionDoc();
       allow delete: if isExistingOwner(userId);
     }
   }
