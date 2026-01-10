@@ -38,7 +38,7 @@ export function PublicHeader() {
             <Link href="/login">Login</Link>
           </Button>
           <Button asChild>
-            <Link href="/register">Register</Link>
+            <Link href="/register">Get Started</Link>
           </Button>
         </div>
       </div>

@@ -53,11 +53,11 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Button asChild size="lg">
                     <Link href="/register">Get Started</Link>
                   </Button>
                   <Button asChild size="lg" variant="secondary">
-                    <Link href="/login">Login with Google</Link>
+                    <Link href="/login">Login</Link>
                   </Button>
                 </div>
               </div>
@@ -77,11 +77,11 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="features" className="w-full bg-background py-12 md:py-24 lg:py-32">
+        <section id="features" className="w-full bg-muted/40 py-12 md:py-24 lg:py-32">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">Key Features</div>
+                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Key Features</div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Smart Farming at Your Fingertips</h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   AgroVision AI combines cutting-edge technology with farmer-friendly design to provide you with the tools you need for a healthier harvest.

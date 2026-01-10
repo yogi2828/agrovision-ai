@@ -1,10 +1,12 @@
+'use client';
+
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -12,24 +14,47 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { detectionHistory, cropTypes } from "@/lib/data"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { FileDown } from "lucide-react"
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useCollection, useUser } from '@/firebase';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { FileDown, Loader2 } from 'lucide-react';
+import { collection, query, where } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { useMemo } from 'react';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { cropTypes } from '@/lib/data';
 
 export default function HistoryPage() {
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
+
+  const detectionsQuery = useMemo(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'detections'),
+      where('userId', '==', user.uid)
+    );
+  }, [user, firestore]);
+
+  const { data: detectionHistory, loading: detectionsLoading } =
+    useCollection(detectionsQuery);
+
+  const loading = userLoading || detectionsLoading;
+
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight font-headline mb-4">Detection History</h1>
+      <h1 className="text-3xl font-bold tracking-tight font-headline mb-4">
+        Detection History
+      </h1>
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <div>
@@ -45,64 +70,107 @@ export default function HistoryPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Crops</SelectItem>
-                {cropTypes.map(crop => (
-                  <SelectItem key={crop} value={crop.toLowerCase()}>{crop}</SelectItem>
+                {cropTypes.map((crop) => (
+                  <SelectItem key={crop} value={crop.toLowerCase()}>
+                    {crop}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
-                <TableHead>Crop</TableHead>
-                <TableHead>Disease</TableHead>
-                <TableHead>Confidence</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {detectionHistory.map((detection) => (
-                <TableRow key={detection.id}>
-                  <TableCell className="hidden sm:table-cell">
-                    {detection.image && (
-                      <Image
-                        alt="Plant image"
-                        className="aspect-square rounded-md object-cover"
-                        height="64"
-                        src={detection.image.imageUrl}
-                        width="64"
-                        data-ai-hint={detection.image.imageHint}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{detection.crop}</TableCell>
-                  <TableCell>{detection.disease}</TableCell>
-                  <TableCell>
-                    <Badge variant={parseFloat(detection.confidence) > 95 ? "default" : "secondary"} className={parseFloat(detection.confidence) > 95 ? "bg-green-600/20 text-green-800 dark:bg-green-400/20 dark:text-green-300" : ""}>
-                      {detection.confidence}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {detection.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      <FileDown className="h-4 w-4 mr-2"/>
-                      Report
-                    </Button>
-                  </TableCell>
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="hidden w-[100px] sm:table-cell">
+                    Image
+                  </TableHead>
+                  <TableHead>Crop</TableHead>
+                  <TableHead>Disease</TableHead>
+                  <TableHead>Confidence</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {detectionHistory?.map((detection: any) => {
+                  const placeholder = PlaceHolderImages.find(
+                    (img) => img.id === 'plant-disease-1'
+                  );
+                  return (
+                    <TableRow key={detection.id}>
+                      <TableCell className="hidden sm:table-cell">
+                        {detection.imageUrl && (
+                          <Image
+                            alt="Plant image"
+                            className="aspect-square rounded-md object-cover"
+                            height="64"
+                            src={detection.imageUrl}
+                            width="64"
+                          />
+                        )}
+                        {!detection.imageUrl && placeholder && (
+                          <Image
+                            alt="Plant image"
+                            className="aspect-square rounded-md object-cover"
+                            height="64"
+                            src={placeholder.imageUrl}
+                            width="64"
+                            data-ai-hint={placeholder.imageHint}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {detection.plantName}
+                      </TableCell>
+                      <TableCell>{detection.diseaseName}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            detection.confidenceLevel * 100 > 95
+                              ? 'default'
+                              : 'secondary'
+                          }
+                          className={
+                            detection.confidenceLevel * 100 > 95
+                              ? 'bg-green-600/20 text-green-800 dark:bg-green-400/20 dark:text-green-300'
+                              : ''
+                          }
+                        >
+                          {(detection.confidenceLevel * 100).toFixed(1)}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {detection.createdAt
+                          .toDate()
+                          .toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm">
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Report
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
