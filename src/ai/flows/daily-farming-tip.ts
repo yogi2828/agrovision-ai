@@ -9,7 +9,7 @@
  * - `DailyFarmingTipOutput` - The return type for the `getDailyFarmingTip` function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, googleAI} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const DailyFarmingTipInputSchema = z.object({
@@ -32,7 +32,7 @@ const dailyFarmingTipPrompt = ai.definePrompt({
   name: 'dailyFarmingTipPrompt',
   input: {schema: DailyFarmingTipInputSchema},
   output: {schema: DailyFarmingTipOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
+  model: googleAI.model('gemini-1.5-flash'),
   prompt: `You are an AI farming assistant providing daily tips to farmers.
 
   Generate a single, actionable farming tip relevant to the current season and location.

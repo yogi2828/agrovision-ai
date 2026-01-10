@@ -9,7 +9,7 @@
  * - DetectDiseaseOutput - The return type for the detectDisease function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, googleAI} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const DetectDiseaseInputSchema = z.object({
@@ -42,7 +42,7 @@ const prompt = ai.definePrompt({
   name: 'detectDiseasePrompt',
   input: {schema: DetectDiseaseInputSchema},
   output: {schema: DetectDiseaseOutputSchema},
-  model: 'googleai/gemini-pro-vision',
+  model: googleAI.model('gemini-pro-vision'),
   prompt: `You are an expert in plant pathology. Analyze the provided image and identify any diseases present.
 
   Provide the plant name, disease name, confidence level (0-1), symptoms, causes, and both organic and chemical treatment options.
