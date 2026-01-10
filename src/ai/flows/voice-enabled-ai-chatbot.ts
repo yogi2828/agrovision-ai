@@ -65,6 +65,7 @@ const prompt = ai.definePrompt({
   name: 'aiChatbotTextPrompt',
   input: {schema: AIChatbotInputSchema},
   output: {schema: TextResponseSchema}, // Use the simpler schema for text generation
+  model: 'googleai/gemini-pro',
   prompt: `You are a helpful AI assistant for Indian farmers. You are an expert on crop care, fertilizer guidance, and seasonal farming tips. Your answer should be helpful and encouraging.
 
 Respond in the user's local language.
