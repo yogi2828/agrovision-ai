@@ -29,7 +29,7 @@ const DetectDiseaseOutputSchema = z.object({
   causes: z.string().describe('The causes of the disease.'),
   treatment: z.object({
     organic: z.string().describe('Organic treatment options for the disease.'),
-    chemical: z'\''.string().describe('Chemical treatment options for the disease.'),
+    chemical: z.string().describe('Chemical treatment options for the disease.'),
   }).describe('Treatment options for the detected disease.'),
 });
 export type DetectDiseaseOutput = z.infer<typeof DetectDiseaseOutputSchema>;
@@ -41,7 +41,7 @@ export async function detectDisease(input: DetectDiseaseInput): Promise<DetectDi
 const diseaseDetectionPrompt = `You are an expert in plant pathology. Analyze the provided image and return a detailed diagnosis.
 
 Your response MUST be a valid JSON object that conforms to the following Zod schema:
-\'\'\'json
+'''json
 {
   "plantName": "string",
   "diseaseName": "string",
@@ -53,7 +53,7 @@ Your response MUST be a valid JSON object that conforms to the following Zod sch
     "chemical": "string"
   }
 }
-\'\'\'
+'''
 
 Do not include any explanatory text or formatting outside of the JSON object.
 
