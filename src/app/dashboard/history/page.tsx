@@ -26,8 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import { useCollection, useUser } from '@/firebase';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { FileDown, Loader2 } from 'lucide-react';
-import { collection, query, where } from 'firebase/firestore';
+import { FileDown, Loader2, Info } from 'lucide-react';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useMemo } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -41,7 +41,8 @@ export default function HistoryPage() {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'detections'),
-      where('userId', '==', user.uid)
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
     );
   }, [user, firestore]);
 
@@ -83,6 +84,12 @@ export default function HistoryPage() {
           {loading ? (
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : !detectionHistory || detectionHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground">
+                <Info className="h-8 w-8 mb-2"/>
+                <p>You haven&apos;t performed any detections yet.</p>
+                <p className="text-sm">Uploaded plant images will appear here.</p>
             </div>
           ) : (
             <Table>
@@ -149,13 +156,15 @@ export default function HistoryPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {detection.createdAt
-                          .toDate()
-                          .toLocaleDateString('en-GB', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
+                        {detection.createdAt?.toDate
+                          ? detection.createdAt
+                              .toDate()
+                              .toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })
+                          : 'Just now'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm">

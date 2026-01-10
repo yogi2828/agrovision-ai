@@ -8,6 +8,7 @@ import {
   FirestoreError,
   QuerySnapshot,
 } from 'firebase/firestore';
+import { useUser } from '../auth/use-user';
 
 interface UseCollection<T> {
   data: T[] | null;
@@ -18,21 +19,27 @@ interface UseCollection<T> {
 export const useCollection = <T extends DocumentData>(
   query: Query<T> | null
 ): UseCollection<T> => {
+  const { user, loading: userLoading } = useUser();
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | null>(null);
 
+  const memoizedQuery = useMemo(() => query, [JSON.stringify(query)]);
+
+
   useEffect(() => {
-    if (!query) {
+    if (!memoizedQuery || !user) {
       setLoading(false);
-      setData(null);
+      if (!userLoading) {
+        setData([]);
+      }
       return;
     }
     
     setLoading(true);
 
     const unsubscribe = onSnapshot(
-      query,
+      memoizedQuery,
       (snapshot: QuerySnapshot<T>) => {
         const docs = snapshot.docs.map((doc) => ({
           ...doc.data(),
@@ -49,7 +56,7 @@ export const useCollection = <T extends DocumentData>(
     );
 
     return () => unsubscribe();
-  }, [query]);
+  }, [memoizedQuery, user, userLoading]);
 
   const value = useMemo(() => {
     return { data, loading, error };

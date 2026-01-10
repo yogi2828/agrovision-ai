@@ -8,18 +8,33 @@ import { Button } from '@/components/ui/button';
 import { Thermometer, Droplets, FlaskConical, Bot, FileDown, Volume2, ShieldCheck, Loader2 } from 'lucide-react';
 import type { DetectDiseaseOutput } from '@/ai/ai-disease-detection';
 
+// Extend the output type to include the optional imageUrl from our logic
+type ResultData = DetectDiseaseOutput & { imageUrl?: string };
+
 function ResultContent() {
   const searchParams = useSearchParams();
-  const imageUrl = searchParams.get('imageUrl');
+  // We can get all data from just the result param now
   const resultString = searchParams.get('result');
 
-  let result: DetectDiseaseOutput | null = null;
+  let result: ResultData | null = null;
   if (resultString) {
     try {
       result = JSON.parse(decodeURIComponent(resultString));
     } catch (error) {
       console.error("Failed to parse result:", error);
     }
+  }
+  
+  const imageUrl = result?.imageUrl || searchParams.get('imageUrl');
+
+
+  if (!result) {
+    return (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Loading results...</p>
+        </div>
+    )
   }
 
   if (!imageUrl) {
@@ -29,15 +44,6 @@ function ResultContent() {
         <p className="text-muted-foreground mt-2">Please go back and upload an image to see the detection result.</p>
       </div>
     );
-  }
-
-  if (!result) {
-    return (
-        <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Loading results...</p>
-        </div>
-    )
   }
 
   const handlePrint = () => {

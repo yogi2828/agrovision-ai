@@ -14,7 +14,7 @@ import { UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { detectDisease, DetectDiseaseOutput } from '@/ai/ai-disease-detection';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import {
   getStorage,
   ref,
@@ -69,18 +69,21 @@ export default function DetectPage() {
             );
             const imageUrl = await getDownloadURL(snapshot.ref);
 
+            if (!firestore) {
+                throw new Error("Firestore is not initialized");
+            }
+            
             const docRef = await addDoc(collection(firestore, 'detections'), {
               ...result,
               userId: user.uid,
-              createdAt: new Date(),
+              createdAt: serverTimestamp(),
               imageUrl: imageUrl,
             });
 
-            const encodedResult = encodeURIComponent(JSON.stringify(result));
+            const resultWithImage = { ...result, imageUrl };
+            const encodedResult = encodeURIComponent(JSON.stringify(resultWithImage));
             router.push(
-              `/dashboard/detect/result?imageUrl=${encodeURIComponent(
-                imageUrl
-              )}&result=${encodedResult}&id=${docRef.id}`
+              `/dashboard/detect/result?result=${encodedResult}&id=${docRef.id}`
             );
           } catch (error) {
             console.error('Detection failed:', error);
