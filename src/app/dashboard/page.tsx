@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ export default function Dashboard() {
           Welcome, {userName}!
         </h1>
         <p className="text-muted-foreground">
-          Here&apos;s a quick overview of your farm assistant.
+          Here's a quick overview of your farm assistant.
         </p>
       </div>
 
