@@ -8,12 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Thermometer, Droplets, FlaskConical, Bot, FileDown, Volume2, ShieldCheck, Loader2 } from 'lucide-react';
 import type { DetectDiseaseOutput } from '@/ai/ai-disease-detection';
 
-// Extend the output type to include the optional imageUrl from our logic
-type ResultData = DetectDiseaseOutput & { imageURL?: string };
+// The result data now includes the flattened treatment fields and imageURL
+type ResultData = Omit<DetectDiseaseOutput, 'treatment'> & { 
+  imageURL: string;
+  treatmentOrganic: string;
+  treatmentChemical: string;
+};
 
 function ResultContent() {
   const searchParams = useSearchParams();
-  // We can get all data from just the result param now
   const resultString = searchParams.get('result');
 
   let result: ResultData | null = null;
@@ -24,9 +27,6 @@ function ResultContent() {
       console.error("Failed to parse result:", error);
     }
   }
-  
-  const imageUrl = result?.imageURL || searchParams.get('imageUrl');
-
 
   if (!result) {
     return (
@@ -37,7 +37,8 @@ function ResultContent() {
     )
   }
 
-  if (!imageUrl) {
+  // The imageURL is now guaranteed to be in the result object
+  if (!result.imageURL) {
     return (
       <div className="text-center">
         <CardTitle>No Image Found</CardTitle>
@@ -59,7 +60,7 @@ function ResultContent() {
           </CardHeader>
           <CardContent>
             <Image
-              src={imageUrl}
+              src={result.imageURL}
               alt="Uploaded plant"
               width={400}
               height={300}
@@ -108,11 +109,11 @@ function ResultContent() {
               <div className="grid gap-4 sm:grid-cols-2 text-sm">
                 <div>
                     <h4 className="font-medium">Organic</h4>
-                     <p className="text-muted-foreground text-sm mt-1">{result.treatment.organic}</p>
+                     <p className="text-muted-foreground text-sm mt-1">{result.treatmentOrganic}</p>
                 </div>
                 <div>
                     <h4 className="font-medium">Chemical</h4>
-                    <p className="text-muted-foreground text-sm mt-1">{result.treatment.chemical}</p>
+                    <p className="text-muted-foreground text-sm mt-1">{result.treatmentChemical}</p>
                 </div>
               </div>
             </div>

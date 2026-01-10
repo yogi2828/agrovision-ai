@@ -14,13 +14,15 @@ import { UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { detectDisease } from '@/ai/ai-disease-detection';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import {
   getStorage,
   ref,
   uploadString,
   getDownloadURL,
 } from 'firebase/storage';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function DetectPage() {
   const router = useRouter();
@@ -45,11 +47,23 @@ export default function DetectPage() {
             const result = await detectDisease({ photoDataUri });
             const detectionDate = new Date().toISOString();
 
+            // Prepare result data that will be used for navigation and saving
+            const resultForNavigation = { 
+              ...result, 
+              treatmentOrganic: result.treatment.organic,
+              treatmentChemical: result.treatment.chemical,
+              detectionDate,
+            };
+            // remove the nested treatment object
+            delete (resultForNavigation as any).treatment;
+
+
             if (!user || !firestore) {
-              const encodedResult = encodeURIComponent(JSON.stringify({ ...result, detectionDate }));
-              const encodedUrl = encodeURIComponent(photoDataUri);
+              // For guests, we include the image data URI directly for display
+              const resultWithImage = { ...resultForNavigation, imageURL: photoDataUri };
+              const encodedResult = encodeURIComponent(JSON.stringify(resultWithImage));
               router.push(
-                `/dashboard/detect/result?imageUrl=${encodedUrl}&result=${encodedResult}`
+                `/dashboard/detect/result?result=${encodedResult}`
               );
               return;
             }
@@ -69,25 +83,28 @@ export default function DetectPage() {
             const imageURL = await getDownloadURL(snapshot.ref);
             
             const docData = {
-              ...result,
+              ...resultForNavigation,
               userId: user.uid,
-              detectionDate,
               imageURL,
-              // De-structure nested treatment object
-              treatmentOrganic: result.treatment.organic,
-              treatmentChemical: result.treatment.chemical,
+              createdAt: serverTimestamp(),
             };
-            // remove the nested treatment object that the AI returns
-            delete (docData as any).treatment;
 
+            const detectionsCol = collection(firestore, 'users', user.uid, 'detections');
+            
+            addDoc(detectionsCol, docData).then(docRef => {
+                const resultWithImage = { ...docData, imageURL };
+                const encodedResult = encodeURIComponent(JSON.stringify(resultWithImage));
+                router.push(
+                  `/dashboard/detect/result?result=${encodedResult}&id=${docRef.id}`
+                );
+            }).catch(error => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: detectionsCol.path,
+                    operation: 'create',
+                    requestResourceData: docData,
+                }));
+            });
 
-            const docRef = await addDoc(collection(firestore, 'users', user.uid, 'detections'), docData);
-
-            const resultWithImage = { ...result, imageURL };
-            const encodedResult = encodeURIComponent(JSON.stringify(resultWithImage));
-            router.push(
-              `/dashboard/detect/result?result=${encodedResult}&id=${docRef.id}`
-            );
           } catch (error) {
             console.error('Detection failed:', error);
             setLoading(false);
