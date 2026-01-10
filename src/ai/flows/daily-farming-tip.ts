@@ -3,7 +3,7 @@
 /**
  * @fileOverview Provides a daily AI-generated farming tip relevant to the current season and user location.
  *
- * - `getDailyFarmingTip` - A function that retrieves the daily farming tip.
+ * - `getDailyFarmingTip` - a function that retrieves the daily farming tip.
  * - `DailyFarmingTipInput` - The input type for the `getDailyFarmingTip` function.
  * - `DailyFarmingTipOutput` - The return type for the `getDailyFarmingTip` function.
  */
@@ -31,7 +31,7 @@ const dailyFarmingTipPrompt = ai.definePrompt({
   name: 'dailyFarmingTipPrompt',
   input: {schema: DailyFarmingTipInputSchema},
   output: {schema: DailyFarmingTipOutputSchema},
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an AI farming assistant providing daily tips to farmers.
 
   Generate a single, actionable farming tip relevant to the current season and location.
