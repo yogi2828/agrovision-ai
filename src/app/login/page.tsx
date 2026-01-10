@@ -22,7 +22,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 
 export default function LoginPage() {
@@ -54,20 +54,34 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      // Also update user doc on login to keep it fresh
       const user = result.user;
-       await setDoc(
-        doc(firestore, 'users', user.uid),
-        {
+
+      // Check if user document already exists
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const docSnap = await getDoc(userDocRef);
+
+      if (!docSnap.exists()) {
+        // If user is new, create a new document
+        await setDoc(userDocRef, {
           name: user.displayName,
           email: user.email,
+          createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
           photoURL: user.photoURL,
-        },
-        { merge: true }
-      );
+          preferredLanguage: 'en'
+        });
+      } else {
+        // If user exists, update last login
+        await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
+      }
+      
+      toast({
+        title: 'Login Successful',
+        description: `Welcome back, ${user.displayName}!`,
+      });
       router.push('/dashboard');
     } catch (e: unknown) {
+      console.error(e);
       if (e instanceof FirebaseError) {
         toast({
           variant: 'destructive',
@@ -153,5 +167,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

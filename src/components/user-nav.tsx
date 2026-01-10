@@ -39,20 +39,12 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative h-10 w-full justify-start gap-2 px-2"
-        >
+        <Button variant="secondary" size="icon" className="rounded-full">
           <Avatar className="h-8 w-8">
             {user?.photoURL && <AvatarImage src={user.photoURL} alt="User avatar" />}
             <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
           </Avatar>
-          <div className="text-left truncate">
-            <div className="text-sm font-medium truncate">{user?.displayName || 'Anonymous'}</div>
-            <div className="text-xs text-muted-foreground truncate">
-              {user?.email || 'No email'}
-            </div>
-          </div>
+           <span className="sr-only">Toggle user menu</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>

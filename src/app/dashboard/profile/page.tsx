@@ -64,6 +64,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user && firestore) {
+      setLoading(true);
       const userDocRef = doc(firestore, 'users', user.uid);
       getDoc(userDocRef)
         .then((docSnap) => {
@@ -71,13 +72,14 @@ export default function ProfilePage() {
             const data = docSnap.data();
             setName(data.name || user.displayName || '');
             setLanguage(data.preferredLanguage || 'en');
+            setAvatarUrl(data.photoURL || user.photoURL || avatarPlaceholder || '');
           } else {
             // If no doc, use auth data and prepare to create one on save
             setName(user.displayName || '');
             setLanguage('en');
+            setAvatarUrl(user.photoURL || avatarPlaceholder || '');
           }
           setEmail(user.email || '');
-          setAvatarUrl(user.photoURL || avatarPlaceholder || '');
           setLoading(false);
         })
         .catch(() => {
@@ -187,10 +189,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold tracking-tight font-headline mb-4">
-        User Profile
-      </h1>
+    <div className="grid gap-6">
+       <div className="space-y-0.5">
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Profile</h1>
+          <p className="text-muted-foreground">Manage your account settings and preferences.</p>
+        </div>
       <Card>
         <CardHeader>
           <CardTitle>Your Information</CardTitle>
@@ -301,5 +304,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    

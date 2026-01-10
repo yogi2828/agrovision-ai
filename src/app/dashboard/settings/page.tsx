@@ -19,8 +19,11 @@ import { Button } from "@/components/ui/button"
 
 export default function SettingsPage() {
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold tracking-tight font-headline mb-4">Settings</h1>
+    <div className="grid gap-6">
+       <div className="space-y-0.5">
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
+          <p className="text-muted-foreground">Manage your app preferences and settings.</p>
+        </div>
       
       <Card>
         <CardHeader>

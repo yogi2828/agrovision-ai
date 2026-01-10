@@ -28,7 +28,7 @@ import {
   GoogleAuthProvider,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
@@ -78,17 +78,24 @@ export default function RegisterPage() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      await setDoc(
-        doc(firestore, 'users', user.uid),
-        {
+
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const docSnap = await getDoc(userDocRef);
+
+      if (!docSnap.exists()) {
+         await setDoc(userDocRef, {
           name: user.displayName,
           email: user.email,
           preferredLanguage: language || 'en',
           createdAt: serverTimestamp(),
           photoURL: user.photoURL,
-        },
-        { merge: true }
-      ); // merge true to not overwrite if user already exists
+        });
+      }
+      
+      toast({
+        title: 'Sign Up Successful',
+        description: `Welcome, ${user.displayName}!`,
+      });
       router.push('/dashboard');
     } catch (e: unknown) {
       if (e instanceof FirebaseError) {
@@ -194,5 +201,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
-    
