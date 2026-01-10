@@ -46,24 +46,7 @@ const prompt = ai.definePrompt({
 
   Your response MUST be a valid JSON object that conforms to the specified schema. Do not include any text or formatting outside of the JSON object.
 
-  Image: {{media url=photoDataUri}}
-
-  Provide your response inside the 'JSON_RESPONSE_BEGIN' and 'JSON_RESPONSE_END' markers.
-
-  JSON_RESPONSE_BEGIN
-  {
-    "plantName": "The common name of the plant.",
-    "diseaseName": "The name of the disease. If healthy, return 'Healthy'. If not a plant, return 'Not a plant'.",
-    "confidenceLevel": 0.95,
-    "symptoms": "A brief description of visual symptoms like leaf spots, discoloration, etc.",
-    "causes": "Common causes of the disease (e.g., fungal infection, pests, nutrient deficiency).",
-    "treatment": {
-      "organic": "Recommended organic treatment.",
-      "chemical": "Recommended chemical treatment."
-    }
-  }
-  JSON_RESPONSE_END
-  `,
+  Image: {{media url=photoDataUri}}`,
 });
 
 
