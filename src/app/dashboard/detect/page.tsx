@@ -14,7 +14,7 @@ import { UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { detectDisease } from '@/ai/ai-disease-detection';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import {
   getStorage,
   ref,
@@ -43,18 +43,17 @@ export default function DetectPage() {
           try {
             setStatus('Analyzing with AI...');
             const result = await detectDisease({ photoDataUri });
+            const detectionDate = new Date().toISOString();
 
             if (!user || !firestore) {
-              // Not logged in, so just show result
+              const encodedResult = encodeURIComponent(JSON.stringify({ ...result, detectionDate }));
               const encodedUrl = encodeURIComponent(photoDataUri);
-              const encodedResult = encodeURIComponent(JSON.stringify(result));
               router.push(
                 `/dashboard/detect/result?imageUrl=${encodedUrl}&result=${encodedResult}`
               );
               return;
             }
 
-            // Logged in, so save to Firestore
             setStatus('Saving results...');
             const storage = getStorage();
             const storageRef = ref(
@@ -67,16 +66,24 @@ export default function DetectPage() {
               photoDataUri,
               'data_url'
             );
-            const imageUrl = await getDownloadURL(snapshot.ref);
+            const imageURL = await getDownloadURL(snapshot.ref);
             
-            const docRef = await addDoc(collection(firestore, 'detections'), {
+            const docData = {
               ...result,
               userId: user.uid,
-              createdAt: serverTimestamp(),
-              imageUrl: imageUrl,
-            });
+              detectionDate,
+              imageURL,
+              // De-structure nested treatment object
+              treatmentOrganic: result.treatment.organic,
+              treatmentChemical: result.treatment.chemical,
+            };
+            // remove the nested treatment object that the AI returns
+            delete (docData as any).treatment;
 
-            const resultWithImage = { ...result, imageUrl };
+
+            const docRef = await addDoc(collection(firestore, 'users', user.uid, 'detections'), docData);
+
+            const resultWithImage = { ...result, imageURL };
             const encodedResult = encodeURIComponent(JSON.stringify(resultWithImage));
             router.push(
               `/dashboard/detect/result?result=${encodedResult}&id=${docRef.id}`

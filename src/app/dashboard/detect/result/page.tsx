@@ -9,7 +9,7 @@ import { Thermometer, Droplets, FlaskConical, Bot, FileDown, Volume2, ShieldChec
 import type { DetectDiseaseOutput } from '@/ai/ai-disease-detection';
 
 // Extend the output type to include the optional imageUrl from our logic
-type ResultData = DetectDiseaseOutput & { imageUrl?: string };
+type ResultData = DetectDiseaseOutput & { imageURL?: string };
 
 function ResultContent() {
   const searchParams = useSearchParams();
@@ -25,7 +25,7 @@ function ResultContent() {
     }
   }
   
-  const imageUrl = result?.imageUrl || searchParams.get('imageUrl');
+  const imageUrl = result?.imageURL || searchParams.get('imageUrl');
 
 
   if (!result) {

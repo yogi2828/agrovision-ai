@@ -23,13 +23,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useCollection, useUser } from '@/firebase';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2, Info } from 'lucide-react';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { useMemo } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cropTypes } from '@/lib/data';
 
@@ -37,16 +35,16 @@ export default function HistoryPage() {
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
 
-  const detectionsQuery = useMemo(() => {
+  const detectionsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
+    // Correctly query the subcollection within the user's document
     return query(
-      collection(firestore, 'detections'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      collection(firestore, 'users', user.uid, 'detections'),
+      orderBy('detectionDate', 'desc')
     );
   }, [user, firestore]);
 
-  const { data: detectionHistory, loading: detectionsLoading } =
+  const { data: detectionHistory, isLoading: detectionsLoading } =
     useCollection(detectionsQuery);
 
   const loading = userLoading || detectionsLoading;
@@ -115,16 +113,16 @@ export default function HistoryPage() {
                   return (
                     <TableRow key={detection.id}>
                       <TableCell className="hidden sm:table-cell">
-                        {detection.imageUrl && (
+                        {detection.imageURL && (
                           <Image
                             alt="Plant image"
                             className="aspect-square rounded-md object-cover"
                             height="64"
-                            src={detection.imageUrl}
+                            src={detection.imageURL}
                             width="64"
                           />
                         )}
-                        {!detection.imageUrl && placeholder && (
+                        {!detection.imageURL && placeholder && (
                           <Image
                             alt="Plant image"
                             className="aspect-square rounded-md object-cover"
@@ -156,9 +154,8 @@ export default function HistoryPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {detection.createdAt?.toDate
-                          ? detection.createdAt
-                              .toDate()
+                        {detection.detectionDate
+                          ? new Date(detection.detectionDate)
                               .toLocaleDateString('en-GB', {
                                 day: '2-digit',
                                 month: 'short',
