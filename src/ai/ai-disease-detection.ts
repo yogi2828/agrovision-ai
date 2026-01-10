@@ -9,8 +9,8 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {generate} from 'genkit/generate';
-import {z} from 'genkit';
+import {generate, z} from 'genkit';
+
 
 const DetectDiseaseInputSchema = z.object({
   photoDataUri: z
