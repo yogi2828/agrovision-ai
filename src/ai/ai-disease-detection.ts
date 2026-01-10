@@ -8,7 +8,7 @@
  * - DetectDiseaseOutput - The return type for the detectDisease function.
  */
 
-import {ai, googleAI} from '@/ai/genkit';
+import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const DetectDiseaseInputSchema = z.object({
@@ -42,9 +42,17 @@ const prompt = ai.definePrompt({
   input: {schema: DetectDiseaseInputSchema},
   output: {schema: DetectDiseaseOutputSchema},
   model: 'gemini-pro-vision',
-  prompt: `You are an expert in plant pathology. Analyze the provided image and identify any diseases present.
+  prompt: `You are an expert in plant pathology. Your task is to analyze the provided image of a plant and return a detailed diagnosis in JSON format.
 
-  Provide the plant name, disease name, confidence level (0-1), symptoms, causes, and both organic and chemical treatment options.
+  Analyze the image and identify the plant and any diseases present. You must provide the following information:
+  - plantName: The common name of the plant.
+  - diseaseName: The name of the disease. If the plant is healthy, return "Healthy".
+  - confidenceLevel: A number between 0 and 1 indicating your confidence in the diagnosis.
+  - symptoms: A brief description of the visual symptoms.
+  - causes: The common causes of the disease.
+  - treatment: An object with two properties: 'organic' and 'chemical' treatment options.
+
+  If the image is not a plant, please indicate that in the diseaseName and symptoms fields.
 
   Image: {{media url=photoDataUri}}`,
 });
