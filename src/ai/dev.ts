@@ -1,1 +1,5 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/daily-farming-tip.ts';
+import '@/ai/flows/voice-enabled-ai-chatbot.ts';

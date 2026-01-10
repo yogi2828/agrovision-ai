@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A vibrant image of a healthy plant with lush green leaves, symbolizing agriculture and growth.",
+      "imageUrl": "https://images.unsplash.com/photo-1628681781120-6615cd7dd79c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxoZWFsdGh5JTIwcGxhbnR8ZW58MHx8fHwxNzY4MDMyOTA4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "healthy plant"
+    },
+    {
+      "id": "feature-detection",
+      "description": "A close-up of a smartphone camera scanning a leaf for diseases.",
+      "imageUrl": "https://images.unsplash.com/photo-1589190156820-6720814eda1c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwaG9uZSUyMHNjYW5uaW5nJTIwcGxhbnR8ZW58MHx8fHwxNzY4MDMyOTA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "phone scanning plant"
+    },
+    {
+      "id": "feature-chatbot",
+      "description": "An abstract illustration of a friendly robot or AI interface.",
+      "imageUrl": "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxBSSUyMHJvYm90fGVufDB8fHx8MTc2Nzk3MjE5NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "AI robot"
+    },
+    {
+      "id": "feature-language",
+      "description": "A graphic representing multiple languages or translation.",
+      "imageUrl": "https://images.unsplash.com/photo-1673515335152-f2589ba8bb7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxsYW5ndWFnZSUyMHRyYW5zbGF0aW9ufGVufDB8fHx8MTc2ODAzMjkwOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "language translation"
+    },
+    {
+      "id": "feature-history",
+      "description": "An icon or image representing cloud storage or a historical timeline.",
+      "imageUrl": "https://images.unsplash.com/photo-1744865310523-8584c0f85604?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2xvdWQlMjBzdG9yYWdlfGVufDB8fHx8MTc2ODAzMjkwOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cloud storage"
+    },
+    {
+      "id": "profile-avatar",
+      "description": "Default user avatar.",
+      "imageUrl": "https://images.unsplash.com/photo-1599566147214-ce487862ea4f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBhdmF0YXJ8ZW58MHx8fHwxNzY3OTI4MTA4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person avatar"
+    },
+    {
+      "id": "plant-disease-1",
+      "description": "Image of a plant with a detectable disease.",
+      "imageUrl": "https://images.unsplash.com/photo-1716410932085-ad2143c189b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxkaXNlYXNlZCUyMHBsYW50fGVufDB8fHx8MTc2ODAzMjkwOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "diseased plant"
+    },
+    {
+      "id": "plant-disease-2",
+      "description": "Image of a plant with a detectable disease.",
+      "imageUrl": "https://images.unsplash.com/photo-1665936380526-ae0add132d03?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxsZWFmJTIwc3BvdHxlbnwwfHx8fDE3NjgwMzI5MDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "leaf spot"
+    },
+    {
+      "id": "plant-disease-3",
+      "description": "Image of a plant with a detectable disease.",
+      "imageUrl": "https://images.unsplash.com/photo-1667328914935-3e6dcc8c31cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwbGFudCUyMHJ1c3R8ZW58MHx8fHwxNzY4MDMyOTA4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "plant rust"
+    }
+  ]
 }
