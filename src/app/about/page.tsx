@@ -1,6 +1,7 @@
 import { PublicHeader } from '@/components/public-header';
 import { Footer } from '@/components/footer';
-import { Sprout, Target, Users } from 'lucide-react';
+import { Target, Users } from 'lucide-react';
+import { Logo } from '@/components/logo';
 
 export default function AboutPage() {
   return (
@@ -10,7 +11,7 @@ export default function AboutPage() {
         <div className="container mx-auto max-w-4xl py-16 px-4 md:px-6">
           <div className="space-y-8">
             <div className="text-center">
-              <Sprout className="mx-auto h-16 w-16 text-primary" />
+              <Logo className="mx-auto h-16 w-16" />
               <h1 className="mt-4 text-4xl font-bold tracking-tight font-headline sm:text-5xl">About AgroVision AI</h1>
               <p className="mt-4 text-lg text-muted-foreground">
                 Empowering Indian farmers with the technology of tomorrow.

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sprout } from 'lucide-react';
+import { Logo } from '@/components/logo';
 import { useState } from 'react';
 import { useAuth } from '@/firebase';
 import {
@@ -68,7 +68,7 @@ export default function LoginPage() {
       <Card className="mx-auto w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="inline-block mx-auto mb-4">
-            <Sprout className="h-10 w-10 text-primary" />
+            <Logo className="h-10 w-10" />
           </div>
           <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
           <CardDescription>

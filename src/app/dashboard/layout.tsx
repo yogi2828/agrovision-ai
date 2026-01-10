@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarInset } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/sidebar-nav';
-import { Sprout } from 'lucide-react';
 import { UserNav } from '@/components/user-nav';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { Logo } from '@/components/logo';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -11,7 +11,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <Sidebar>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
-            <Sprout className="h-8 w-8 text-primary" />
+            <Logo className="h-8 w-8" />
             <span className="text-lg font-semibold">AgroVision AI</span>
           </div>
         </SidebarHeader>

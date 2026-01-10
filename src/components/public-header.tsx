@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Sprout } from 'lucide-react';
+import { Logo } from './logo';
 import { Button } from './ui/button';
 import { LanguageSwitcher } from './language-switcher';
 
@@ -17,7 +17,7 @@ export function PublicHeader() {
       <div className="container mx-auto flex h-14 max-w-screen-2xl items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Sprout className="h-6 w-6 text-primary" />
+            <Logo className="h-6 w-6" />
             <span className="font-bold">AgroVision AI</span>
           </Link>
           <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
