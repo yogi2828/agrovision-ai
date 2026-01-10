@@ -7,7 +7,7 @@
  * - AIChatbotOutput - The return type for the aiChatbot function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, googleAI} from '@/ai/genkit';
 import {z} from 'genkit';
 import wav from 'wav';
 
@@ -89,7 +89,7 @@ const aiChatbotFlow = ai.defineFlow(
 
     // 2. Generate the speech audio from the text response
     const { media } = await ai.generate({
-      model: ai.model('gemini-2.5-flash-preview-tts'),
+      model: googleAI.model('gemini-2.5-flash-preview-tts'),
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
