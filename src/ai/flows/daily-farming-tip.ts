@@ -31,7 +31,7 @@ const dailyFarmingTipPrompt = ai.definePrompt({
   name: 'dailyFarmingTipPrompt',
   input: {schema: DailyFarmingTipInputSchema},
   output: {schema: DailyFarmingTipOutputSchema},
-  model: 'googleai/gemini-1.5-flash-latest',
+  model: 'gemini-1.5-flash-latest',
   prompt: `You are an AI farming assistant providing daily tips to farmers.
 
   Generate a single, actionable farming tip relevant to the current season and location.
@@ -67,7 +67,7 @@ const dailyFarmingTipFlow = ai.defineFlow(
     } catch (e: any) {
       console.error(`[dailyFarmingTipFlow] Error: ${e.message}`, e);
       // Re-throwing the error to be handled by the client
-      throw new Error('The AI model returned an unexpected response. Please try again.');
+      throw new Error('An unexpected response was received from the server.');
     }
   }
 );
