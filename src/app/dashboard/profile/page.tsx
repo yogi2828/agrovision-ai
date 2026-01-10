@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { languages } from '@/lib/data';
 import Image from 'next/image';
-import { useUser, useFirestore, useAuth } from '@/firebase';
+import { useUser, useFirestore, useAuth, useDoc, useMemoFirebase } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { updateProfile, deleteUser } from 'firebase/auth';
@@ -46,16 +46,30 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+interface UserProfile {
+  fullName?: string;
+  preferredLanguage?: string;
+  profileImageURL?: string;
+}
+
 export default function ProfilePage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userData, isLoading: isDocLoading } = useDoc<UserProfile>(userDocRef);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [language, setLanguage] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [loading, setLoading] = useState(true);
+  
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
@@ -64,58 +78,37 @@ export default function ProfilePage() {
   )?.imageUrl;
 
   useEffect(() => {
-    if (user && firestore) {
-      setLoading(true);
-      const userDocRef = doc(firestore, 'users', user.uid);
-      getDoc(userDocRef)
-        .then((docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setName(data.fullName || user.displayName || '');
-            setLanguage(data.preferredLanguage || 'en');
-            setAvatarUrl(data.profileImageURL || user.photoURL || avatarPlaceholder || '');
-          } else {
-            // If no doc, use auth data and prepare to create one on save
-            setName(user.displayName || '');
-            setLanguage('en');
-            setAvatarUrl(user.photoURL || avatarPlaceholder || '');
-          }
-          setEmail(user.email || '');
-        })
-        .catch(() => {
-          // Fallback on error
-          setName(user.displayName || '');
-          setEmail(user.email || '');
-          setLanguage('en');
-          setAvatarUrl(user.photoURL || avatarPlaceholder || '');
-        })
-        .finally(() => {
-            setLoading(false);
-        });
-    } else if (!userLoading) {
-      setLoading(false);
+    if (user) {
+      setEmail(user.email || '');
     }
-  }, [user, firestore, userLoading, avatarPlaceholder]);
+    if (userData) {
+      setName(userData.fullName || user?.displayName || '');
+      setLanguage(userData.preferredLanguage || 'en');
+      setAvatarUrl(userData.profileImageURL || user?.photoURL || avatarPlaceholder || '');
+    } else if(user && !isDocLoading) {
+      // Fallback for when there's an auth user but no firestore doc yet
+      setName(user.displayName || '');
+      setLanguage('en');
+      setAvatarUrl(user.photoURL || avatarPlaceholder || '');
+    }
+  }, [user, userData, isDocLoading, avatarPlaceholder]);
 
   const handleSaveChanges = async () => {
     if (!user || !firestore || !auth?.currentUser) return;
     setSaving(true);
     try {
-      // Create a task for updating the auth profile
       const authUpdatePromise = updateProfile(auth.currentUser, { displayName: name });
   
-      // Create a task for updating the Firestore document
       const firestoreUpdatePromise = setDoc(
         doc(firestore, 'users', user.uid),
         {
           fullName: name,
-          email: user.email, // ensure email is saved
+          email: user.email, 
           preferredLanguage: language,
         },
         { merge: true }
       );
   
-      // Run both tasks in parallel
       await Promise.all([authUpdatePromise, firestoreUpdatePromise]);
   
       toast({
@@ -133,7 +126,7 @@ export default function ProfilePage() {
   };
 
   const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !user || !auth?.currentUser) return;
+    if (!e.target.files || !user || !auth?.currentUser || !firestore) return;
     const file = e.target.files[0];
     if (!file) return;
 
@@ -141,9 +134,7 @@ export default function ProfilePage() {
     const storageRef = ref(storage, `avatars/${user.uid}`);
     setSaving(true);
     uploadBytes(storageRef, file)
-      .then((snapshot) => {
-        return getDownloadURL(snapshot.ref);
-      })
+      .then((snapshot) => getDownloadURL(snapshot.ref))
       .then(async (downloadURL) => {
         await updateProfile(auth.currentUser!, { photoURL: downloadURL });
         await setDoc(
@@ -169,10 +160,7 @@ export default function ProfilePage() {
   const handleDeleteAccount = async () => {
     if (!user || !firestore || !auth?.currentUser) return;
     try {
-      // First delete user data from Firestore
       await deleteDoc(doc(firestore, 'users', user.uid));
-      
-      // Then delete the user from Authentication
       await deleteUser(auth.currentUser);
 
       toast({
@@ -189,7 +177,9 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading || userLoading) {
+  const isLoading = isUserLoading || isDocLoading;
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-40">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -198,10 +188,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 max-w-4xl mx-auto">
        <div className="space-y-0.5">
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Profile</h1>
-          <p className="text-muted-foreground">Manage your account settings and preferences.</p>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl font-headline">Profile</h1>
+          <p className="text-muted-foreground">Manage your account settings and language preferences.</p>
         </div>
       <Card>
         <CardHeader>
@@ -266,9 +256,11 @@ export default function ProfilePage() {
                 ))}
               </SelectContent>
             </Select>
+             <p className="text-sm text-muted-foreground">
+              This language will be used for the AI assistant.
+            </p>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline">Cancel</Button>
             <Button onClick={handleSaveChanges} disabled={saving}>
               {saving ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -8,7 +9,7 @@ import { LanguageSwitcher } from './language-switcher';
 import { UserNav } from './user-nav';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { Menu } from 'lucide-react';
+import { Menu, Settings } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -49,9 +50,9 @@ export function DashboardHeader() {
         </SheetTrigger>
         <SheetContent side="left">
           <nav className="grid gap-6 text-lg font-medium">
-            <Link href="#" className="flex items-center gap-2 text-lg font-semibold">
+            <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold">
               <Logo className="h-6 w-6" />
-              <span className="sr-only">AgroVision AI</span>
+              <span className="font-bold ml-2">AgroVision AI</span>
             </Link>
             {navItems.map(item => (
               <Link
@@ -65,6 +66,15 @@ export function DashboardHeader() {
                 {item.label}
               </Link>
             ))}
+             <Link
+                href="/dashboard/profile"
+                className={cn(
+                  'hover:text-foreground',
+                   pathname === "/dashboard/profile" ? 'text-foreground' : 'text-muted-foreground'
+                )}
+              >
+                Profile
+              </Link>
           </nav>
         </SheetContent>
       </Sheet>
