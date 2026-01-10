@@ -41,6 +41,7 @@ const prompt = ai.definePrompt({
   name: 'detectDiseasePrompt',
   input: {schema: DetectDiseaseInputSchema},
   output: {schema: DetectDiseaseOutputSchema},
+  model: 'googleai/gemini-pro',
   prompt: `You are an expert in plant pathology. Analyze the provided image and identify any diseases present.
 
   Provide the plant name, disease name, confidence level (0-1), symptoms, causes, and both organic and chemical treatment options.
