@@ -1,0 +1,211 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the AgroVision AI platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user.",
+          "format": "uuid"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "description": "The user's preferred language for the application."
+        },
+        "userType": {
+          "type": "string",
+          "description": "The type of user (e.g., Farmer)."
+        },
+        "profileImageURL": {
+          "type": "string",
+          "description": "URL of the user's profile image.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "fullName",
+        "email",
+        "preferredLanguage",
+        "userType"
+      ]
+    },
+    "PlantDiseaseDetection": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PlantDiseaseDetection",
+      "type": "object",
+      "description": "Represents a single plant disease detection record.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the detection record."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N PlantDiseaseDetection)"
+        },
+        "imageURL": {
+          "type": "string",
+          "description": "URL of the uploaded plant image.",
+          "format": "uri"
+        },
+        "plantName": {
+          "type": "string",
+          "description": "The name of the plant."
+        },
+        "diseaseName": {
+          "type": "string",
+          "description": "The name of the detected disease."
+        },
+        "confidenceLevel": {
+          "type": "number",
+          "description": "The confidence level of the AI detection (0-1)."
+        },
+        "symptoms": {
+          "type": "string",
+          "description": "Description of the plant's symptoms."
+        },
+        "causes": {
+          "type": "string",
+          "description": "Causes of the plant disease."
+        },
+        "treatmentOrganic": {
+          "type": "string",
+          "description": "Recommended organic treatment for the disease."
+        },
+        "treatmentChemical": {
+          "type": "string",
+          "description": "Recommended chemical treatment for the disease."
+        },
+        "detectionDate": {
+          "type": "string",
+          "description": "The date and time when the detection was performed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "imageURL",
+        "plantName",
+        "diseaseName",
+        "confidenceLevel",
+        "symptoms",
+        "causes",
+        "treatmentOrganic",
+        "treatmentChemical",
+        "detectionDate"
+      ]
+    },
+    "DailyFarmingTip": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DailyFarmingTip",
+      "type": "object",
+      "description": "Represents a daily farming tip for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the daily farming tip."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N DailyFarmingTip)"
+        },
+        "tipText": {
+          "type": "string",
+          "description": "The text content of the daily farming tip."
+        },
+        "tipDate": {
+          "type": "string",
+          "description": "The date for which the farming tip is valid.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "tipText",
+        "tipDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  User ID is used as the document ID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/detections/{detectionId}",
+        "definition": {
+          "entityName": "PlantDiseaseDetection",
+          "schema": {
+            "$ref": "#/backend/entities/PlantDiseaseDetection"
+          },
+          "description": "Stores plant disease detection records for each user. User ID is denormalized, allowing independent authorization. Detections are owned by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user who owns the detection."
+            },
+            {
+              "name": "detectionId",
+              "description": "The unique identifier for the plant disease detection record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/tips/{tipId}",
+        "definition": {
+          "entityName": "DailyFarmingTip",
+          "schema": {
+            "$ref": "#/backend/entities/DailyFarmingTip"
+          },
+          "description": "Stores daily farming tips for each user. User ID is denormalized, enabling authorization independence. Tips are owned by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "tipId",
+              "description": "The unique identifier for the daily farming tip."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily debuggable backend for the AgroVision AI application. It prioritizes authorization independence by denormalizing user IDs into subcollections to avoid `get()` calls in security rules.  The structure follows a hierarchical path-based ownership model where a User owns PlantDiseaseDetections and DailyFarmingTips, enabling clear and efficient security rules based solely on `request.auth.uid`. This approach eliminates authorization dependencies and ensures that atomic operations (transactions/batches) can be performed without compromising security. The chosen structure also readily supports listing operations (QAPs).  The collections are segregated based on access needs: user data is stored under `/users/{userId}`, detections under `/users/{userId}/detections`, and daily tips under `/users/{userId}/tips`. This ensures that each collection has a homogeneous security posture, simplifying rules and enhancing maintainability. The design incorporates explicit state modeling (though not explicitly defined in the provided entities), semantic naming conventions, and denormalized authorization contexts. This combination makes the structure predictable, debuggable, and secure."
+  }
+}
