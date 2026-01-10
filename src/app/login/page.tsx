@@ -18,7 +18,6 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  updateProfile,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -51,7 +50,14 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    if (!auth || !firestore) return;
+    if (!auth || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Firebase is not ready. Please try again in a moment.',
+      });
+      return;
+    }
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -60,25 +66,20 @@ export default function LoginPage() {
       const userDocRef = doc(firestore, 'users', user.uid);
       const docSnap = await getDoc(userDocRef);
 
+      // Create a new user document ONLY if one doesn't already exist.
       if (!docSnap.exists()) {
-        // If user is new from Google, create their profile in Auth and Firestore
-        // This will also run for users signing in for the first time
         await setDoc(userDocRef, {
           name: user.displayName,
           email: user.email,
           createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
           photoURL: user.photoURL,
-          preferredLanguage: 'en'
+          preferredLanguage: 'en', // Default language
         });
-      } else {
-        // If user exists, just update last login time
-        await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
       }
-      
+
       toast({
         title: 'Login Successful',
-        description: `Welcome back, ${user.displayName}!`,
+        description: `Welcome, ${user.displayName}!`,
       });
       router.push('/dashboard');
     } catch (e: unknown) {

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { detectDisease, DetectDiseaseOutput } from '@/ai/ai-disease-detection';
+import { detectDisease } from '@/ai/ai-disease-detection';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import {
@@ -46,8 +46,8 @@ export default function DetectPage() {
 
             if (!user || !firestore) {
               // Not logged in, so just show result
-              const encodedResult = encodeURIComponent(JSON.stringify(result));
               const encodedUrl = encodeURIComponent(photoDataUri);
+              const encodedResult = encodeURIComponent(JSON.stringify(result));
               router.push(
                 `/dashboard/detect/result?imageUrl=${encodedUrl}&result=${encodedResult}`
               );
@@ -68,10 +68,6 @@ export default function DetectPage() {
               'data_url'
             );
             const imageUrl = await getDownloadURL(snapshot.ref);
-
-            if (!firestore) {
-                throw new Error("Firestore is not initialized");
-            }
             
             const docRef = await addDoc(collection(firestore, 'detections'), {
               ...result,

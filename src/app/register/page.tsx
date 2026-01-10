@@ -58,7 +58,7 @@ export default function RegisterPage() {
         email: user.email,
         preferredLanguage: language || 'en',
         createdAt: serverTimestamp(),
-        photoURL: user.photoURL
+        photoURL: user.photoURL,
       });
       router.push('/dashboard');
     } catch (e: unknown) {
@@ -72,8 +72,15 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleSignUp = async () => {
-    if (!auth || !firestore) return;
+  const handleGoogleLogin = async () => {
+    if (!auth || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Firebase is not ready. Please try again in a moment.',
+      });
+      return;
+    }
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -82,15 +89,14 @@ export default function RegisterPage() {
       const userDocRef = doc(firestore, 'users', user.uid);
       const docSnap = await getDoc(userDocRef);
 
+      // Create a new user document ONLY if one doesn't already exist.
       if (!docSnap.exists()) {
-        // If user is new from Google, create their profile in Auth and Firestore
         await setDoc(userDocRef, {
           name: user.displayName,
           email: user.email,
           createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
           photoURL: user.photoURL,
-          preferredLanguage: language || 'en'
+          preferredLanguage: language || 'en', // Default language
         });
       }
       
@@ -100,6 +106,7 @@ export default function RegisterPage() {
       });
       router.push('/dashboard');
     } catch (e: unknown) {
+      console.error("Google sign up error:", e);
       if (e instanceof FirebaseError) {
         toast({
           variant: 'destructive',
@@ -129,7 +136,7 @@ export default function RegisterPage() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={handleGoogleSignUp}
+              onClick={handleGoogleLogin}
             >
               Sign up with Google
             </Button>
