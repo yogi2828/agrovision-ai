@@ -62,7 +62,7 @@ export default function LoginPage() {
 
       if (!docSnap.exists()) {
         // If user is new from Google, create their profile in Auth and Firestore
-        await updateProfile(user, { displayName: user.displayName, photoURL: user.photoURL });
+        // This will also run for users signing in for the first time
         await setDoc(userDocRef, {
           name: user.displayName,
           email: user.email,
@@ -82,7 +82,7 @@ export default function LoginPage() {
       });
       router.push('/dashboard');
     } catch (e: unknown) {
-      console.error(e);
+      console.error("Google login error:", e);
       if (e instanceof FirebaseError) {
         toast({
           variant: 'destructive',
