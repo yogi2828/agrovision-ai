@@ -18,6 +18,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  updateProfile,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -56,12 +57,12 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if user document already exists
       const userDocRef = doc(firestore, 'users', user.uid);
       const docSnap = await getDoc(userDocRef);
 
       if (!docSnap.exists()) {
-        // If user is new, create a new document
+        // If user is new from Google, create their profile in Auth and Firestore
+        await updateProfile(user, { displayName: user.displayName, photoURL: user.photoURL });
         await setDoc(userDocRef, {
           name: user.displayName,
           email: user.email,
@@ -71,7 +72,7 @@ export default function LoginPage() {
           preferredLanguage: 'en'
         });
       } else {
-        // If user exists, update last login
+        // If user exists, just update last login time
         await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
       }
       

@@ -83,12 +83,15 @@ export default function RegisterPage() {
       const docSnap = await getDoc(userDocRef);
 
       if (!docSnap.exists()) {
-         await setDoc(userDocRef, {
+        // If user is new from Google, create their profile in Auth and Firestore
+        await updateProfile(user, { displayName: user.displayName, photoURL: user.photoURL });
+        await setDoc(userDocRef, {
           name: user.displayName,
           email: user.email,
-          preferredLanguage: language || 'en',
           createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
           photoURL: user.photoURL,
+          preferredLanguage: language || 'en'
         });
       }
       
