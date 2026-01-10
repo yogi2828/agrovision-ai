@@ -66,7 +66,7 @@ const prompt = ai.definePrompt({
   name: 'aiChatbotTextPrompt',
   input: {schema: AIChatbotInputSchema},
   output: {schema: TextResponseSchema}, // Use the simpler schema for text generation
-  model: googleAI.model('gemini-1.5-flash'),
+  model: 'gemini-1.5-flash',
   prompt: `You are a helpful AI assistant for Indian farmers. You are an expert on crop care, fertilizer guidance, and seasonal farming tips. Your answer should be helpful and encouraging.
 
 Respond in the user's local language.
@@ -91,7 +91,7 @@ const aiChatbotFlow = ai.defineFlow(
 
     // 2. Generate the speech audio from the text response
     const { media } = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview-tts'),
+      model: 'gemini-2.5-flash-preview-tts',
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
