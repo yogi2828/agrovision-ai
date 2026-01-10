@@ -19,10 +19,10 @@ import {
 } from '@/components/ui/select';
 import { languages } from '@/lib/data';
 import Image from 'next/image';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useAuth } from '@/firebase';
 import { useEffect, useState } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { updateProfile, deleteUser } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import {
@@ -31,10 +31,25 @@ import {
   uploadBytes,
   getDownloadURL,
 } from 'firebase/storage';
+import { useRouter } from 'next/navigation';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function ProfilePage() {
   const { user, loading: userLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [language, setLanguage] = useState('');
@@ -42,6 +57,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const avatarPlaceholder = PlaceHolderImages.find(
+    (img) => img.id === 'profile-avatar'
+  )?.imageUrl;
 
   useEffect(() => {
     if (user && firestore) {
@@ -51,34 +70,39 @@ export default function ProfilePage() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setName(data.name || user.displayName || '');
-            setEmail(data.email || user.email || '');
             setLanguage(data.preferredLanguage || 'en');
-            setAvatarUrl(user.photoURL || '/default-avatar.png');
           } else {
+            // If no doc, use auth data and prepare to create one on save
             setName(user.displayName || '');
-            setEmail(user.email || '');
             setLanguage('en');
-            setAvatarUrl(user.photoURL || '/default-avatar.png');
           }
+          setEmail(user.email || '');
+          setAvatarUrl(user.photoURL || avatarPlaceholder || '');
           setLoading(false);
         })
         .catch(() => {
+          // Fallback on error
+          setName(user.displayName || '');
+          setEmail(user.email || '');
+          setLanguage('en');
+          setAvatarUrl(user.photoURL || avatarPlaceholder || '');
           setLoading(false);
         });
     } else if (!userLoading) {
       setLoading(false);
     }
-  }, [user, firestore, userLoading]);
+  }, [user, firestore, userLoading, avatarPlaceholder]);
 
   const handleSaveChanges = async () => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !auth?.currentUser) return;
     setSaving(true);
     try {
-      await updateProfile(user, { displayName: name });
+      await updateProfile(auth.currentUser, { displayName: name });
       await setDoc(
         doc(firestore, 'users', user.uid),
         {
           name,
+          email: user.email, // ensure email is saved
           preferredLanguage: language,
         },
         { merge: true }
@@ -87,33 +111,74 @@ export default function ProfilePage() {
         title: 'Profile updated',
         description: 'Your changes have been saved.',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to update profile.',
+        description: error.message || 'Failed to update profile.',
       });
     }
     setSaving(false);
   };
 
   const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !user) return;
+    if (!e.target.files || !user || !auth?.currentUser) return;
     const file = e.target.files[0];
+    if (!file) return;
+
     const storage = getStorage();
     const storageRef = ref(storage, `avatars/${user.uid}`);
     setSaving(true);
-    uploadBytes(storageRef, file).then((snapshot) => {
-      getDownloadURL(snapshot.ref).then(async (downloadURL) => {
-        await updateProfile(user, { photoURL: downloadURL });
+    uploadBytes(storageRef, file)
+      .then((snapshot) => {
+        return getDownloadURL(snapshot.ref);
+      })
+      .then(async (downloadURL) => {
+        await updateProfile(auth.currentUser!, { photoURL: downloadURL });
+        await setDoc(
+          doc(firestore, 'users', user.uid),
+          { photoURL: downloadURL },
+          { merge: true }
+        );
         setAvatarUrl(downloadURL);
-        setSaving(false);
         toast({ title: 'Profile picture updated.' });
+      })
+      .catch((error: any) => {
+        toast({
+          variant: 'destructive',
+          title: 'Upload Failed',
+          description: error.message || 'Could not upload new profile picture.',
+        });
+      })
+      .finally(() => {
+        setSaving(false);
       });
-    });
   };
 
-  if (loading) {
+  const handleDeleteAccount = async () => {
+    if (!user || !firestore || !auth?.currentUser) return;
+    try {
+      // First delete user data from Firestore
+      await deleteDoc(doc(firestore, 'users', user.uid));
+      
+      // Then delete the user from Authentication
+      await deleteUser(auth.currentUser);
+
+      toast({
+        title: 'Account Deleted',
+        description: 'Your account has been permanently deleted.',
+      });
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Deletion Failed',
+        description: error.message || 'Could not delete your account. You may need to sign in again to complete this action.',
+      });
+    }
+  };
+
+  if (loading || userLoading) {
     return (
       <div className="flex justify-center items-center h-40">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -155,6 +220,7 @@ export default function ProfilePage() {
                   className="hidden"
                   accept="image/*"
                   onChange={handlePictureChange}
+                  disabled={saving}
                 />
               </label>
             </Button>
@@ -166,6 +232,7 @@ export default function ProfilePage() {
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={saving}
               />
             </div>
             <div className="space-y-2">
@@ -175,7 +242,7 @@ export default function ProfilePage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="language">Preferred Language</Label>
-            <Select value={language} onValueChange={setLanguage}>
+            <Select value={language} onValueChange={setLanguage} disabled={saving}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a language" />
               </SelectTrigger>
@@ -203,12 +270,36 @@ export default function ProfilePage() {
               Once you delete your account, there is no going back. Please be
               certain.
             </p>
-            <Button variant="destructive" className="mt-4">
-              Delete My Account
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="mt-4">
+                  Delete My Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your
+                    account and remove your data from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive hover:bg-destructive/90"
+                    onClick={handleDeleteAccount}
+                  >
+                    Continue
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

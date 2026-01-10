@@ -28,7 +28,7 @@ import {
   GoogleAuthProvider,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
@@ -56,8 +56,9 @@ export default function RegisterPage() {
       await setDoc(doc(firestore, 'users', user.uid), {
         name: fullName,
         email: user.email,
-        preferredLanguage: language,
-        createdAt: new Date(),
+        preferredLanguage: language || 'en',
+        createdAt: serverTimestamp(),
+        photoURL: user.photoURL
       });
       router.push('/dashboard');
     } catch (e: unknown) {
@@ -83,7 +84,8 @@ export default function RegisterPage() {
           name: user.displayName,
           email: user.email,
           preferredLanguage: language || 'en',
-          createdAt: new Date(),
+          createdAt: serverTimestamp(),
+          photoURL: user.photoURL,
         },
         { merge: true }
       ); // merge true to not overwrite if user already exists
@@ -115,6 +117,23 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogleSignUp}
+            >
+              Sign up with Google
+            </Button>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                    </span>
+                </div>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="full-name">Full Name</Label>
               <Input
@@ -163,13 +182,6 @@ export default function RegisterPage() {
             <Button onClick={handleRegister} className="w-full">
               Create an account
             </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleSignUp}
-            >
-              Sign up with Google
-            </Button>
           </div>
           <div className="mt-4 text-center text-sm">
             Already have an account?{' '}
@@ -182,3 +194,5 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+    
