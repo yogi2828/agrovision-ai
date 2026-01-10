@@ -80,7 +80,6 @@ export default function ProfilePage() {
             setAvatarUrl(user.photoURL || avatarPlaceholder || '');
           }
           setEmail(user.email || '');
-          setLoading(false);
         })
         .catch(() => {
           // Fallback on error
@@ -88,7 +87,9 @@ export default function ProfilePage() {
           setEmail(user.email || '');
           setLanguage('en');
           setAvatarUrl(user.photoURL || avatarPlaceholder || '');
-          setLoading(false);
+        })
+        .finally(() => {
+            setLoading(false);
         });
     } else if (!userLoading) {
       setLoading(false);
@@ -99,8 +100,11 @@ export default function ProfilePage() {
     if (!user || !firestore || !auth?.currentUser) return;
     setSaving(true);
     try {
-      await updateProfile(auth.currentUser, { displayName: name });
-      await setDoc(
+      // Create a task for updating the auth profile
+      const authUpdatePromise = updateProfile(auth.currentUser, { displayName: name });
+  
+      // Create a task for updating the Firestore document
+      const firestoreUpdatePromise = setDoc(
         doc(firestore, 'users', user.uid),
         {
           fullName: name,
@@ -109,6 +113,10 @@ export default function ProfilePage() {
         },
         { merge: true }
       );
+  
+      // Run both tasks in parallel
+      await Promise.all([authUpdatePromise, firestoreUpdatePromise]);
+  
       toast({
         title: 'Profile updated',
         description: 'Your changes have been saved.',
@@ -207,7 +215,7 @@ export default function ProfilePage() {
               alt="User avatar"
               className="rounded-full"
               height="80"
-              src={avatarUrl}
+              src={avatarUrl || avatarPlaceholder || ''}
               style={{
                 aspectRatio: '80/80',
                 objectFit: 'cover',
@@ -304,3 +312,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

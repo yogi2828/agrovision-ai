@@ -27,7 +27,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="xl:col-span-2 grid gap-4 md:grid-cols-2 md:gap-8">
+      <div className="xl:col-span-2 grid gap-4 sm:grid-cols-2 md:gap-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -60,7 +60,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        <Card className="sm:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Detection History

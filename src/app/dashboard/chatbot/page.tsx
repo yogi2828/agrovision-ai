@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { aiChatbot } from '@/ai/flows/voice-enabled-ai-chatbot';
 import { languages } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 type Message = {
   sender: 'user' | 'bot';
@@ -24,9 +26,17 @@ const predefinedQuestions = [
     "Tell me about organic pest control methods.",
 ]
 
-const language = languages[0].value; // Default to English
-
 export default function ChatbotPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userData } = useDoc<{ preferredLanguage: string }>(userDocRef);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -35,6 +45,7 @@ export default function ChatbotPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector('div');
@@ -43,6 +54,10 @@ export default function ChatbotPage() {
       }
     }
   }, [messages, isLoading]);
+  
+  const getLanguage = () => {
+    return userData?.preferredLanguage || languages[0].value;
+  }
 
   const processQuery = useCallback(async (query: string) => {
     if (query.trim() === '' || isLoading) return;
@@ -53,6 +68,7 @@ export default function ChatbotPage() {
     setIsLoading(true);
 
     try {
+      const language = getLanguage();
       const result = await aiChatbot({ language, query });
       const botMessage: Message = { sender: 'bot', text: result.response, audio: result.audio };
       setMessages(prev => [...prev, botMessage]);
@@ -63,7 +79,7 @@ export default function ChatbotPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [isLoading, userData]);
 
   const handleSend = () => {
     processQuery(input);
@@ -84,7 +100,7 @@ export default function ChatbotPage() {
     stopAudio(); // Stop any currently playing audio
 
     recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.lang = language + '-IN';
+    recognitionRef.current.lang = getLanguage() + '-IN';
     recognitionRef.current.interimResults = true;
 
     recognitionRef.current.onresult = (event: any) => {
