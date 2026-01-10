@@ -69,10 +69,12 @@ export default function LoginPage() {
       // Create a new user document ONLY if one doesn't already exist.
       if (!docSnap.exists()) {
         await setDoc(userDocRef, {
-          name: user.displayName,
+          id: user.uid,
+          fullName: user.displayName,
           email: user.email,
+          userType: 'Farmer',
           createdAt: serverTimestamp(),
-          photoURL: user.photoURL,
+          profileImageURL: user.photoURL,
           preferredLanguage: 'en', // Default language
         });
       }

@@ -53,12 +53,15 @@ export default function RegisterPage() {
       );
       const user = userCredential.user;
       await updateProfile(user, { displayName: fullName });
+      // The fix is here: Adding id: user.uid to the document
       await setDoc(doc(firestore, 'users', user.uid), {
-        name: fullName,
+        id: user.uid,
+        fullName: fullName,
         email: user.email,
+        userType: 'Farmer',
         preferredLanguage: language || 'en',
         createdAt: serverTimestamp(),
-        photoURL: user.photoURL,
+        profileImageURL: user.photoURL,
       });
       router.push('/dashboard');
     } catch (e: unknown) {
@@ -92,10 +95,12 @@ export default function RegisterPage() {
       // Create a new user document ONLY if one doesn't already exist.
       if (!docSnap.exists()) {
         await setDoc(userDocRef, {
-          name: user.displayName,
+          id: user.uid,
+          fullName: user.displayName,
           email: user.email,
+          userType: 'Farmer',
           createdAt: serverTimestamp(),
-          photoURL: user.photoURL,
+          profileImageURL: user.photoURL,
           preferredLanguage: language || 'en', // Default language
         });
       }

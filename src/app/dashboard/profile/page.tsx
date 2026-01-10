@@ -70,9 +70,9 @@ export default function ProfilePage() {
         .then((docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
-            setName(data.name || user.displayName || '');
+            setName(data.fullName || user.displayName || '');
             setLanguage(data.preferredLanguage || 'en');
-            setAvatarUrl(data.photoURL || user.photoURL || avatarPlaceholder || '');
+            setAvatarUrl(data.profileImageURL || user.photoURL || avatarPlaceholder || '');
           } else {
             // If no doc, use auth data and prepare to create one on save
             setName(user.displayName || '');
@@ -103,7 +103,7 @@ export default function ProfilePage() {
       await setDoc(
         doc(firestore, 'users', user.uid),
         {
-          name,
+          fullName: name,
           email: user.email, // ensure email is saved
           preferredLanguage: language,
         },
@@ -139,7 +139,7 @@ export default function ProfilePage() {
         await updateProfile(auth.currentUser!, { photoURL: downloadURL });
         await setDoc(
           doc(firestore, 'users', user.uid),
-          { photoURL: downloadURL },
+          { profileImageURL: downloadURL },
           { merge: true }
         );
         setAvatarUrl(downloadURL);
