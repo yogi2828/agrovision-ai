@@ -7,5 +7,5 @@ export const googleAI = googleAIPlugin();
 export const ai = genkit({
   plugins: [googleAI],
   // The model to use for text generation.
-  defaultModel: 'googleai/gemini-1.5-flash-latest' as ModelArgument,
+  defaultModel: 'gemini-pro' as ModelArgument,
 });
