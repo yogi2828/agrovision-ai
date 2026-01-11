@@ -28,8 +28,6 @@ import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatb
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 
 type Message = {
@@ -55,7 +53,6 @@ declare global {
 
 export default function ChatbotPage() {
   const { user } = useUser();
-  const db = useFirestore();
   const appUser = user as AppUser | null;
   const { toast } = useToast();
 
