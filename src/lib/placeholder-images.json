@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "1",
+      "description": "A close-up of a hand holding a smartphone analyzing a leaf.",
+      "imageUrl": "https://images.unsplash.com/photo-1752937285643-b1bc660beb92?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwbGFudCUyMGFuYWx5c2lzfGVufDB8fHx8MTc2ODEzNDc2MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "plant analysis"
+    },
+    {
+      "id": "2",
+      "description": "A friendly robot icon in a field of crops.",
+      "imageUrl": "https://images.unsplash.com/photo-1717992649099-e2c0fc7408e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjaGF0Ym90JTIwYWdyaWN1bHR1cmV8ZW58MHx8fHwxNzY4MTM0NzYxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "chatbot agriculture"
+    },
+    {
+      "id": "3",
+      "description": "Sound waves emanating from a person's mouth towards a plant.",
+      "imageUrl": "https://images.unsplash.com/photo-1575404019223-f025a13baedf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx2b2ljZSUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzY4MTM0NzYxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "voice technology"
+    },
+    {
+      "id": "4",
+      "description": "A globe showing different countries and languages.",
+      "imageUrl": "https://images.unsplash.com/photo-1631295076127-0b7a86635fd3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsYW5ndWFnZSUyMGRpdmVyc2l0eXxlbnwwfHx8fDE3NjgxMzQ3NjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "language diversity"
+    },
+    {
+      "id": "5",
+      "description": "A lush green field of crops under a clear sky.",
+      "imageUrl": "https://images.unsplash.com/photo-1509218541462-aa68e407d0ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxncmVlbiUyMGZpZWxkfGVufDB8fHx8MTc2ODExMzY2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "green field"
+    },
+    {
+      "id": "6",
+      "description": "A farmer examining a leaf with a magnifying glass.",
+      "imageUrl": "https://images.unsplash.com/photo-1687473774629-b160f5012e9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmYXJtZXIlMjBleGFtaW5pbmd8ZW58MHx8fHwxNzY4MTM0NzYxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "farmer examining"
+    },
+    {
+      "id": "7",
+      "description": "An abstract image of a brain made of circuits with a leaf inside.",
+      "imageUrl": "https://images.unsplash.com/photo-1731361183753-92449577ad30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxBSSUyMGFncmljdWx0dXJlfGVufDB8fHx8MTc2ODEzNDc2MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "AI agriculture"
+    },
+    {
+      "id": "8",
+      "description": "A diverse group of farmers from India.",
+      "imageUrl": "https://images.unsplash.com/photo-1609252509027-3928a66302fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxpbmRpYW4lMjBmYXJtZXJzfGVufDB8fHx8MTc2ODEzNDc2MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "indian farmers"
+    },
+    {
+      "id": "9",
+      "description": "A person speaking into a vintage microphone in a garden.",
+      "imageUrl": "https://images.unsplash.com/photo-1740517367497-30d198dc79f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx2b2ljZSUyMGdhcmRlbnxlbnwwfHx8fDE3NjgxMzQ3NjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "voice garden"
+    },
+    {
+      "id": "10",
+      "description": "A plant with glowing spots indicating disease.",
+      "imageUrl": "https://images.unsplash.com/photo-1603289035069-d0a5a39b7c5c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwbGFudCUyMGRpc2Vhc2V8ZW58MHx8fHwxNzY4MDc4NjgyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "plant disease"
+    }
+  ]
 }
