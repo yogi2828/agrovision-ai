@@ -32,7 +32,7 @@ const prompt = ai.definePrompt({
   output: {schema: MultilingualAIChatbotResponsesOutputSchema},
   model: 'googleai/gemini-2.5-flash',
   prompt: `You are AgroVision AI, an expert agriculture assistant. 
-  Your entire response MUST be in the following language: {{{language}}}. Do not use any other language.
+  Your entire response MUST be in the following language: {{{language}}}. Do not use any other language under any circumstances.
   Keep your answers simple, clear, and easy for a farmer to understand.
 
   User message: "{{{userMessage}}}"`,

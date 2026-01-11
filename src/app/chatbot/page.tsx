@@ -279,11 +279,9 @@ export default function ChatbotPage() {
             <Button onClick={() => handleSend(input)} disabled={isLoading || !input.trim()} size="icon">
               <Send className="h-4 w-4" />
             </Button>
-            {appUser?.voiceEnabled && (
-              <Button onClick={handleVoiceInput} disabled={isLoading} size="icon" variant={isListening ? 'destructive' : 'outline'}>
-                <Mic className="h-4 w-4" />
-              </Button>
-            )}
+            <Button onClick={handleVoiceInput} disabled={isLoading} size="icon" variant={isListening ? 'destructive' : 'outline'}>
+              <Mic className="h-4 w-4" />
+            </Button>
           </div>
         </CardFooter>
       </Card>
