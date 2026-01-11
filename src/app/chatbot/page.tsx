@@ -29,7 +29,6 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -44,6 +43,14 @@ const predefinedQuestions = [
   'What should I plant in the current season?',
 ];
 
+// Extend window type for SpeechRecognition
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export default function ChatbotPage() {
   const { user } = useUser();
   const appUser = user as AppUser | null;
@@ -54,19 +61,42 @@ export default function ChatbotPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [listening, setListening] = useState(false);
 
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition
-  } = useSpeechRecognition();
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    if (transcript) {
-      setInput(transcript);
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = appUser?.language || 'en-US';
+      recognition.interimResults = false;
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        handleSend(transcript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        toast({
+          title: 'Voice Error',
+          description: `Could not process voice input: ${event.error}`,
+          variant: 'destructive',
+        });
+        setListening(false);
+      };
+      
+      recognition.onend = () => {
+        setListening(false);
+      };
+
+      recognitionRef.current = recognition;
     }
-  }, [transcript]);
+  }, [appUser?.language]);
+
 
   const saveToHistory = async (userMessage: string, aiResponse: string) => {
     if (!appUser || !db) return;
@@ -93,7 +123,6 @@ export default function ChatbotPage() {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
     setInput('');
-    resetTranscript();
 
     try {
       let response;
@@ -163,7 +192,7 @@ export default function ChatbotPage() {
   };
 
   const handleVoiceInput = () => {
-    if (!browserSupportsSpeechRecognition) {
+    if (!recognitionRef.current) {
       toast({
         title: 'Unsupported Browser',
         description:'Your browser does not support voice recognition.',
@@ -173,9 +202,11 @@ export default function ChatbotPage() {
     }
 
     if (listening) {
-      SpeechRecognition.stopListening();
+      recognitionRef.current.stop();
+      setListening(false);
     } else {
-      SpeechRecognition.startListening({ language: appUser?.language || 'en-US' });
+      recognitionRef.current.start();
+      setListening(true);
     }
   };
 
