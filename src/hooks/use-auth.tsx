@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const showLoader = loading && !publicRoutes.includes(pathname);
   const showRedirectLoader = !user && !publicRoutes.includes(pathname);
-
+  
   if (showLoader || showRedirectLoader) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -94,7 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const showNav = !loading;
+  // Determine if the navbar should be shown.
+  // Don't show it on login/signup pages.
+  const showNav = !loading && !['/login', '/signup'].includes(pathname);
 
   return (
     <AuthContext.Provider value={value}>
@@ -106,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export const useAuth = () => {
+export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');

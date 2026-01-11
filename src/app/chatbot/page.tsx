@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -29,6 +29,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -52,10 +53,20 @@ export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
+
+  useEffect(() => {
+    if (transcript) {
+      setInput(transcript);
+    }
+  }, [transcript]);
 
   const saveToHistory = async (userMessage: string, aiResponse: string) => {
     if (!appUser || !db) return;
@@ -82,6 +93,7 @@ export default function ChatbotPage() {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
     setInput('');
+    resetTranscript();
 
     try {
       let response;
@@ -140,7 +152,6 @@ export default function ChatbotPage() {
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
-    utteranceRef.current = utterance;
     speechSynthesis.speak(utterance);
   };
   
@@ -152,8 +163,7 @@ export default function ChatbotPage() {
   };
 
   const handleVoiceInput = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    if (!browserSupportsSpeechRecognition) {
       toast({
         title: 'Unsupported Browser',
         description:'Your browser does not support voice recognition.',
@@ -162,31 +172,11 @@ export default function ChatbotPage() {
       return;
     }
 
-    if (isRecording) {
-      recognitionRef.current?.stop();
-      setIsRecording(false);
-      return;
+    if (listening) {
+      SpeechRecognition.stopListening();
+    } else {
+      SpeechRecognition.startListening({ language: appUser?.language || 'en-US' });
     }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = appUser?.language || 'en-US';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => setIsRecording(true);
-    recognition.onend = () => setIsRecording(false);
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(transcript);
-      handleSend(transcript);
-    };
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsRecording(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
   };
 
 
@@ -302,9 +292,9 @@ export default function ChatbotPage() {
                 onClick={handleVoiceInput}
                 disabled={isLoading}
                 size="icon"
-                variant={isRecording ? 'destructive' : 'outline'}
+                variant={listening ? 'destructive' : 'outline'}
               >
-                {isRecording ? <X className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {listening ? <X className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
             )}
           </div>
