@@ -1,54 +1,60 @@
 'use client';
 
 import {
-  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
 } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Leaf, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
+  
+  const loginImage = PlaceHolderImages.find(p => p.id === '6');
 
   useEffect(() => {
     if (!isUserLoading && user) {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
-  
-  const loginImage = PlaceHolderImages.find(p => p.id === '6');
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!auth) return;
+  const handleGoogleSignIn = async () => {
+    if (!auth || !db) return;
     setIsSigningIn(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // Redirect is handled by the AuthProvider
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const { user: newUser } = result;
+
+      // Create user document in Firestore on first sign-in
+      const userRef = doc(db, 'users', newUser.uid);
+      await setDoc(userRef, {
+        id: newUser.uid,
+        name: newUser.displayName,
+        email: newUser.email,
+        language: 'en-IN',
+        voiceEnabled: true,
+        voiceSpeed: 1,
+      }, { merge: true }); // Merge to avoid overwriting existing data
+
     } catch (error: any) {
       console.error(error);
-      let description = "An unexpected error occurred. Please try again.";
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        description = "Invalid email or password. Please try again.";
-      }
       toast({
         title: 'Sign In Failed',
-        description,
+        description: "Could not sign in with Google. Please try again.",
         variant: 'destructive',
       });
       setIsSigningIn(false);
@@ -77,37 +83,10 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSignIn} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isSigningIn}>
-                {isSigningIn ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Login'}
+            <div className="grid gap-4">
+              <Button onClick={handleGoogleSignIn} className="w-full" disabled={isSigningIn}>
+                {isSigningIn ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Sign In with Google'}
               </Button>
-            </form>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="underline">
-                Sign up
-              </Link>
             </div>
           </CardContent>
         </Card>

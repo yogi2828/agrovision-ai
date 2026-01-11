@@ -1,9 +1,9 @@
-
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -21,15 +21,13 @@ import {
   User,
   Volume2,
   VolumeX,
-  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { expandFAQ } from '@/ai/flows/dynamic-faq-expansion';
 import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatbot-responses';
-import { useUser } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
-
 
 type Message = {
   role: 'user' | 'assistant';
@@ -37,14 +35,13 @@ type Message = {
 };
 
 const predefinedQuestions = [
-  'What are common plant diseases?',
-  'How do I properly water my plants?',
-  'What is the best fertilizer for tomatoes?',
-  'How to control pests naturally?',
-  'What should I plant in the current season?',
+  'Common diseases in tomato',
+  'How to prevent fungal disease',
+  'Best organic fertilizer',
+  'How often to water crops',
+  'How to control pests',
 ];
 
-// Extend window type for SpeechRecognition
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -55,67 +52,63 @@ declare global {
 export default function ChatbotPage() {
   const { user } = useUser();
   const appUser = user as AppUser | null;
+  const db = useFirestore();
   const { toast } = useToast();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [listening, setListening] = useState(false);
 
   const recognitionRef = useRef<any>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.lang = appUser?.language || 'en-US';
-      recognition.interimResults = false;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
 
-      recognition.onresult = (event: any) => {
+      recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInput(transcript);
         handleSend(transcript);
-        setListening(false);
       };
 
-      recognition.onerror = (event: any) => {
+      recognitionRef.current.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         toast({
           title: 'Voice Error',
           description: `Could not process voice input: ${event.error}`,
           variant: 'destructive',
         });
-        setListening(false);
-      };
-      
-      recognition.onend = () => {
-        setListening(false);
+        setIsListening(false);
       };
 
-      recognitionRef.current = recognition;
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
     }
-  }, [appUser?.language, toast]);
-
-
-  const handleSend = async (messageContent: string) => {
-    if (!messageContent.trim()) return;
+  }, [toast]);
+  
+  const handleSend = useCallback(async (messageContent: string) => {
+    if (!messageContent.trim() || !appUser || !db) return;
     const userMessage: Message = { role: 'user', content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
     setInput('');
 
     try {
-      let response;
+      const userLanguage = appUser.language || 'en-IN';
       let aiResponseMessage: string;
-      const userLanguage = appUser?.language || 'en';
 
       if (predefinedQuestions.includes(messageContent)) {
-        response = await expandFAQ({ question: messageContent, language: userLanguage });
+        const response = await expandFAQ({ question: messageContent, language: userLanguage });
         aiResponseMessage = response.expandedAnswer;
       } else {
-        response = await multilingualAIChatbotResponses({
+        const response = await multilingualAIChatbotResponses({
           userMessage: messageContent,
           language: userLanguage,
         });
@@ -127,19 +120,23 @@ export default function ChatbotPage() {
         content: aiResponseMessage,
       };
       setMessages((prev) => [...prev, aiMessage]);
-
-      if (appUser?.voiceEnabled) {
-        speak(aiResponseMessage);
+      
+      if (appUser.voiceEnabled) {
+        speak(aiResponseMessage, userLanguage, appUser.voiceSpeed);
       }
+      
+      // Save chat to Firestore
+      await addDoc(collection(db, 'users', appUser.uid, 'chatHistory'), {
+        userMessage: messageContent,
+        aiResponse: aiResponseMessage,
+        language: userLanguage,
+        timestamp: serverTimestamp(),
+      });
 
     } catch (error) {
       console.error('AI response error:', error);
-      const errorMessage =
-        'Sorry, I encountered an error. Please try again.';
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: errorMessage },
-      ]);
+      const errorMessage = 'Sorry, I encountered an error. Please try again.';
+      setMessages((prev) => [...prev, { role: 'assistant', content: errorMessage }]);
       toast({
         title: 'AI Error',
         description: 'Failed to get a response from the AI.',
@@ -148,25 +145,26 @@ export default function ChatbotPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [appUser, db, toast]);
 
-  const speak = (text: string) => {
+  const speak = (text: string, lang: string, rate: number) => {
     if (!window.speechSynthesis) return;
-    
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
+    stopSpeaking();
     
     const utterance = new SpeechSynthesisUtterance(text);
-    if(appUser?.language) {
-      utterance.lang = appUser.language;
-    }
-    if(appUser?.voiceSpeed) {
-      utterance.rate = appUser.voiceSpeed;
-    }
+    utterance.lang = lang;
+    utterance.rate = rate || 1;
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onerror = (e) => {
+      console.error("Speech synthesis error", e);
+      setIsSpeaking(false);
+      toast({
+        title: "Voice Error",
+        description: "Could not play audio response.",
+        variant: "destructive",
+      });
+    };
     speechSynthesis.speak(utterance);
   };
   
@@ -181,22 +179,29 @@ export default function ChatbotPage() {
     if (!recognitionRef.current) {
       toast({
         title: 'Unsupported Browser',
-        description:'Your browser does not support voice recognition.',
-        variant: 'destructive'
+        description: 'Your browser does not support voice recognition.',
+        variant: 'destructive',
       });
       return;
     }
-
-    if (listening) {
+    
+    if (isListening) {
       recognitionRef.current.stop();
-      setListening(false);
     } else {
-      recognitionRef.current.lang = appUser?.language || 'en-US';
+      recognitionRef.current.lang = appUser?.language || 'en-IN';
       recognitionRef.current.start();
-      setListening(true);
+      setIsListening(true);
     }
   };
 
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [messages]);
 
   return (
     <div className="container py-8 flex justify-center">
@@ -212,74 +217,44 @@ export default function ChatbotPage() {
                 <VolumeX className="h-6 w-6 text-red-500" />
               </Button>
             ) : (
-               <Button variant="ghost" size="icon" disabled={!messages.some(m => m.role === 'assistant')}>
+               <Button variant="ghost" size="icon" disabled={!messages.some(m => m.role === 'assistant')} onClick={() => {
+                 const lastAiMessage = messages.slice().reverse().find(m => m.role === 'assistant');
+                 if(lastAiMessage && appUser) {
+                   speak(lastAiMessage.content, appUser.language, appUser.voiceSpeed);
+                 }
+               }}>
                 <Volume2 className="h-6 w-6 text-muted-foreground" />
               </Button>
             )
           )}
         </CardHeader>
         <CardContent className="flex-1 flex flex-col gap-4 overflow-hidden">
-          <ScrollArea className="flex-1 pr-4 -mr-4">
+          <ScrollArea className="flex-1 pr-4 -mr-4" ref={scrollAreaRef}>
             <div className="space-y-4">
               {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    'flex items-start gap-3',
-                    message.role === 'user'
-                      ? 'justify-end'
-                      : 'justify-start'
-                  )}
-                >
+                <div key={index} className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : 'justify-start')}>
                   {message.role === 'assistant' && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        <Bot />
-                      </AvatarFallback>
-                    </Avatar>
+                    <Avatar className="h-8 w-8"><AvatarFallback><Bot /></AvatarFallback></Avatar>
                   )}
-                  <div
-                    className={cn(
-                      'max-w-md rounded-lg px-4 py-2',
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary'
-                    )}
-                  >
+                  <div className={cn('max-w-md rounded-lg px-4 py-2', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
                     <p className="whitespace-pre-wrap">{message.content}</p>
                   </div>
                   {message.role === 'user' && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        <User />
-                      </AvatarFallback>
-                    </Avatar>
+                    <Avatar className="h-8 w-8"><AvatarFallback><User /></AvatarFallback></Avatar>
                   )}
                 </div>
               ))}
               {isLoading && (
                 <div className="flex items-start gap-3 justify-start">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      <Bot />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="max-w-md rounded-lg px-4 py-2 bg-secondary">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  </div>
+                  <Avatar className="h-8 w-8"><AvatarFallback><Bot /></AvatarFallback></Avatar>
+                  <div className="max-w-md rounded-lg px-4 py-2 bg-secondary"><Loader2 className="h-5 w-5 animate-spin" /></div>
                 </div>
               )}
             </div>
           </ScrollArea>
           <div className="flex flex-wrap gap-2">
             {predefinedQuestions.map((q) => (
-              <Button
-                key={q}
-                variant="outline"
-                size="sm"
-                onClick={() => handleSend(q)}
-                disabled={isLoading}
-              >
+              <Button key={q} variant="outline" size="sm" onClick={() => handleSend(q)} disabled={isLoading}>
                 {q}
               </Button>
             ))}
@@ -290,7 +265,7 @@ export default function ChatbotPage() {
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message or use the microphone..."
+              placeholder={isListening ? "Listening..." : "Type or click the mic..."}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -299,22 +274,14 @@ export default function ChatbotPage() {
               }}
               rows={1}
               className="min-h-0 resize-none"
+              disabled={isLoading}
             />
-            <Button
-              onClick={() => handleSend(input)}
-              disabled={isLoading || !input.trim()}
-              size="icon"
-            >
+            <Button onClick={() => handleSend(input)} disabled={isLoading || !input.trim()} size="icon">
               <Send className="h-4 w-4" />
             </Button>
             {appUser?.voiceEnabled && (
-              <Button
-                onClick={handleVoiceInput}
-                disabled={isLoading}
-                size="icon"
-                variant={listening ? 'destructive' : 'outline'}
-              >
-                {listening ? <X className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              <Button onClick={handleVoiceInput} disabled={isLoading} size="icon" variant={isListening ? 'destructive' : 'outline'}>
+                <Mic className="h-4 w-4" />
               </Button>
             )}
           </div>

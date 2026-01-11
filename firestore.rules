@@ -15,11 +15,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 
-      match /diseaseRecords/{recordId} {
+      match /diseaseHistory/{recordId} {
         allow read, write: if isOwner(userId);
       }
 
-      match /chatRecords/{recordId} {
+      match /chatHistory/{messageId} {
         allow read, write: if isOwner(userId);
       }
     }

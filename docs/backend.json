@@ -8,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the user (matches Firebase Auth UID)."
         },
         "name": {
           "type": "string",
@@ -19,22 +19,20 @@
           "description": "User's email address.",
           "format": "email"
         },
-        "preferredLanguage": {
+        "language": {
           "type": "string",
-          "description": "User's preferred language for the application."
+          "description": "User's preferred language code (e.g., 'en-IN')."
         },
         "voiceEnabled": {
           "type": "boolean",
           "description": "Indicates whether voice input/output is enabled for the user."
+        },
+        "voiceSpeed": {
+          "type": "number",
+          "description": "The user's preferred speed for voice output (e.g., 1.0)."
         }
       },
-      "required": [
-        "id",
-        "name",
-        "email",
-        "preferredLanguage",
-        "voiceEnabled"
-      ]
+      "required": ["id", "name", "email", "language", "voiceEnabled"]
     },
     "DiseaseRecord": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -48,19 +46,15 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who created this record. (Relationship: User 1:N DiseaseRecord)"
+          "description": "Reference to the User who created this record."
         },
         "plantName": {
           "type": "string",
           "description": "Name of the plant."
         },
-        "disease": {
+        "diseaseName": {
           "type": "string",
           "description": "Name of the detected disease."
-        },
-        "treatment": {
-          "type": "string",
-          "description": "Recommended treatment for the disease."
         },
         "symptoms": {
           "type": "string",
@@ -70,13 +64,17 @@
           "type": "string",
           "description": "Causes of the disease."
         },
-        "preventionTips": {
+        "treatment": {
+          "type": "string",
+          "description": "Recommended treatment for the disease."
+        },
+        "prevention": {
           "type": "string",
           "description": "Tips for preventing the disease."
         },
-        "confidenceLevel": {
-          "type": "number",
-          "description": "Confidence level of the diagnosis."
+        "language": {
+          "type": "string",
+          "description": "The language the record was generated in."
         },
         "timestamp": {
           "type": "string",
@@ -84,17 +82,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "plantName",
-        "disease",
-        "symptoms",
-        "causes",
-        "preventionTips",
-        "confidenceLevel",
-        "timestamp"
-      ]
+      "required": ["id", "userId", "plantName", "diseaseName", "treatment", "prevention", "language", "timestamp"]
     },
     "ChatRecord": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -108,7 +96,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who created this record. (Relationship: User 1:N ChatRecord)"
+          "description": "Reference to the User who created this record."
         },
         "userMessage": {
           "type": "string",
@@ -128,81 +116,26 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "userMessage",
-        "aiResponse",
-        "language",
-        "timestamp"
-      ]
+      "required": ["id", "userId", "userMessage", "aiResponse", "language", "timestamp"]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profiles. Only the user can read/write their own profile.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/diseaseRecords/{diseaseRecordId}",
-        "definition": {
-          "entityName": "DiseaseRecord",
-          "schema": {
-            "$ref": "#/backend/entities/DiseaseRecord"
-          },
-          "description": "Stores disease detection records for each user. Path-based ownership ensures only the user can access their own records.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "diseaseRecordId",
-              "description": "The unique identifier of the disease record."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/chatRecords/{chatRecordId}",
-        "definition": {
-          "entityName": "ChatRecord",
-          "schema": {
-            "$ref": "#/backend/entities/ChatRecord"
-          },
-          "description": "Stores chat conversation records for each user. Path-based ownership ensures only the user can access their own chat history.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "chatRecordId",
-              "description": "The unique identifier of the chat record."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, clarity, and scalability, adhering to the specified principles. It leverages path-based ownership for user-specific data and avoids `get()` calls in security rules.\n\n*   **Users Collection:** Stores user profiles with basic information. Access is restricted to the user themselves.\n*   **DiseaseRecords Collection:** Stores disease detection records for each user. Uses path-based ownership for simplicity and security.\n*   **ChatRecords Collection:** Stores chat conversation records for each user. Path-based ownership ensures only the user can access their own chat history.\n\nThis structure supports the required QAPs by:\n\n*   **Private Data:** Using Path-Based ownership (`/users/{userId}/...`) for all user-specific data.\n\nThe structure facilitates simple, robust, and easily debuggable security rules because each collection has a clear and consistent security posture."
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles. Only the user can read/write their own profile."
+    },
+    "/users/{userId}/chatHistory/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatRecord" },
+      "description": "Stores chat conversation records for each user."
+    },
+    "/users/{userId}/diseaseHistory/{recordId}": {
+      "schema": { "$ref": "#/entities/DiseaseRecord" },
+      "description": "Stores disease detection records for each user (text only)."
+    }
   }
 }

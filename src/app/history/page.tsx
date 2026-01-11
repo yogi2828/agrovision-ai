@@ -40,8 +40,10 @@ import { format } from 'date-fns';
 type DetectionHistory = {
   id: string;
   plantName: string;
-  disease: string;
+  diseaseName: string;
   treatment: string;
+  prevention: string;
+  language: string;
   timestamp: Timestamp;
 };
 
@@ -66,11 +68,11 @@ export default function HistoryPage() {
       setIsLoading(true);
       try {
         const detectionQuery = query(
-          collection(db, 'users', user.uid, 'diseaseRecords'),
+          collection(db, 'users', user.uid, 'diseaseHistory'),
           orderBy('timestamp', 'desc')
         );
         const chatQuery = query(
-          collection(db, 'users', user.uid, 'chatRecords'),
+          collection(db, 'users', user.uid, 'chatHistory'),
           orderBy('timestamp', 'desc')
         );
 
@@ -139,7 +141,7 @@ export default function HistoryPage() {
             <CardHeader>
               <CardTitle>Detection History</CardTitle>
               <CardDescription>
-                A log of all your plant disease analyses.
+                A log of all your plant disease analyses (text only).
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -156,7 +158,7 @@ export default function HistoryPage() {
                       <AccordionTrigger>
                         <div className="flex justify-between w-full pr-4">
                           <span className="font-semibold">
-                            {item.disease} on {item.plantName}
+                            {item.diseaseName} on {item.plantName}
                           </span>
                           <span className="text-sm text-muted-foreground flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
@@ -172,6 +174,11 @@ export default function HistoryPage() {
                           <h4 className="font-semibold">Treatment</h4>
                           <p className="text-muted-foreground">{item.treatment}</p>
                         </div>
+                         <div>
+                          <h4 className="font-semibold">Prevention</h4>
+                          <p className="text-muted-foreground">{item.prevention}</p>
+                        </div>
+                         <div className="text-xs text-muted-foreground">Language: {item.language}</div>
                       </AccordionContent>
                     </AccordionItem>
                   ))}
@@ -202,7 +209,7 @@ export default function HistoryPage() {
                       <div className="flex justify-between items-center mb-2">
                         <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <MessageSquare className="h-4 w-4" />
-                          Chat in {chat.language.toUpperCase()}
+                          Chat in {chat.language}
                         </p>
                         <p className="text-xs text-muted-foreground flex items-center gap-2">
                           <Calendar className="h-4 w-4" />

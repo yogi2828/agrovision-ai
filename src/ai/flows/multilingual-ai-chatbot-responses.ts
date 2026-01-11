@@ -13,7 +13,7 @@ import {z} from 'genkit';
 
 const MultilingualAIChatbotResponsesInputSchema = z.object({
   userMessage: z.string().describe('The message from the user.'),
-  language: z.string().describe('The language selected by the user.'),
+  language: z.string().describe("The language for the AI to respond in (e.g., 'hi-IN')."),
 });
 export type MultilingualAIChatbotResponsesInput = z.infer<typeof MultilingualAIChatbotResponsesInputSchema>;
 
@@ -31,11 +31,11 @@ const prompt = ai.definePrompt({
   input: {schema: MultilingualAIChatbotResponsesInputSchema},
   output: {schema: MultilingualAIChatbotResponsesOutputSchema},
   model: 'googleai/gemini-2.5-flash',
-  prompt: `You are a multilingual AI chatbot that specializes in agriculture and plant care. Your entire response and all text in your structured JSON output MUST be in the user's selected language.
+  prompt: `You are AgroVision AI, an expert agriculture assistant. 
+  Your entire response MUST be in the following language: {{{language}}}. Do not use any other language.
+  Keep your answers simple, clear, and easy for a farmer to understand.
 
-User message: {{{userMessage}}}
-
-Respond in: {{{language}}}`,
+  User message: "{{{userMessage}}}"`,
 });
 
 const multilingualAIChatbotResponsesFlow = ai.defineFlow(

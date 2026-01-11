@@ -51,12 +51,12 @@ export default function DashboardPage() {
         setActivityLoading(true);
         try {
           const detectionQuery = query(
-            collection(db, 'users', user.uid, 'diseaseRecords'),
+            collection(db, 'users', user.uid, 'diseaseHistory'),
             orderBy('timestamp', 'desc'),
             limit(2)
           );
           const chatQuery = query(
-            collection(db, 'users', user.uid, 'chatRecords'),
+            collection(db, 'users', user.uid, 'chatHistory'),
             orderBy('timestamp', 'desc'),
             limit(2)
           );
@@ -73,7 +73,7 @@ export default function DashboardPage() {
             activities.push({
               id: doc.id,
               type: 'detection',
-              content: `Detected ${data.disease} on ${data.plantName}`,
+              content: `Detected ${data.diseaseName} on ${data.plantName}`,
               timestamp: (data.timestamp as Timestamp).toDate(),
             });
           });
@@ -122,7 +122,7 @@ export default function DashboardPage() {
         </p>
         {appUser?.language && (
             <p className="text-sm text-muted-foreground">
-            Current language: <span className="font-semibold text-primary">{appUser.language.toUpperCase()}</span>
+            Current language: <span className="font-semibold text-primary">{appUser.language}</span>
             </p>
         )}
       </div>

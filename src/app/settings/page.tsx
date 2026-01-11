@@ -56,7 +56,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (appUser) {
       reset({
-        language: appUser.language || 'en',
+        language: appUser.language || 'en-IN',
         voiceEnabled: appUser.voiceEnabled ?? true,
         voiceSpeed: appUser.voiceSpeed ?? 1,
         theme: theme || 'system',

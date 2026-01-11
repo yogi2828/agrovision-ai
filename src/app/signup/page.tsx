@@ -1,13 +1,11 @@
 'use client';
 
 import {
-  createUserWithEmailAndPassword,
-  updateProfile,
+  signInWithPopup,
+  GoogleAuthProvider,
 } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Leaf, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -24,52 +22,40 @@ export default function SignUpPage() {
   const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isSigningUp, setIsSigningUp] = useState(false);
+  
+  const signupImage = PlaceHolderImages.find(p => p.id === '7');
 
   useEffect(() => {
     if (!isUserLoading && user) {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
-  
-  const signupImage = PlaceHolderImages.find(p => p.id === '7');
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignUp = async () => {
     if (!auth || !db) return;
     setIsSigningUp(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const { user: newUser } = userCredential;
-      
-      // Update Firebase Auth profile
-      await updateProfile(newUser, { displayName: name });
-  
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const { user: newUser } = result;
+
       // Create user document in Firestore
       const userRef = doc(db, 'users', newUser.uid);
       await setDoc(userRef, {
         id: newUser.uid,
-        name: name,
+        name: newUser.displayName,
         email: newUser.email,
-        preferredLanguage: 'en',
+        language: 'en-IN',
         voiceEnabled: true,
+        voiceSpeed: 1.0,
       });
 
     } catch (error: any) {
       console.error(error);
-       let description = "An unexpected error occurred. Please try again.";
-      if (error.code === 'auth/email-already-in-use') {
-        description = "This email is already in use. Please log in or use a different email.";
-      } else if (error.code === 'auth/weak-password') {
-        description = "The password is too weak. It should be at least 6 characters.";
-      }
       toast({
         title: 'Sign Up Failed',
-        description,
+        description: "Could not sign up with Google. Please try again.",
         variant: 'destructive',
       });
       setIsSigningUp(false);
@@ -94,46 +80,15 @@ export default function SignUpPage() {
               <CardTitle className="text-3xl font-bold font-headline">Create an Account</CardTitle>
             </div>
             <CardDescription>
-              Enter your details below to create your account.
+              Sign up with Google to get started.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSignUp} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="full-name">Full Name</Label>
-                <Input 
-                  id="full-name" 
-                  placeholder="John Doe" 
-                  required 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isSigningUp}>
-                {isSigningUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Create account'}
+            <div className="grid gap-4">
+              <Button onClick={handleGoogleSignUp} className="w-full" disabled={isSigningUp}>
+                {isSigningUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Sign Up with Google'}
               </Button>
-            </form>
+            </div>
             <div className="mt-4 text-center text-sm">
               Already have an account?{' '}
               <Link href="/login" className="underline">
