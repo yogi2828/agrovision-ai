@@ -29,7 +29,8 @@ const prompt = ai.definePrompt({
   name: 'multilingualAIChatbotResponsesPrompt',
   input: {schema: MultilingualAIChatbotResponsesInputSchema},
   output: {schema: MultilingualAIChatbotResponsesOutputSchema},
-  prompt: `You are a multilingual AI chatbot that specializes in agriculture and plant care. Your response MUST be in the user's selected language.
+  model: 'googleai/gemini-2.5-flash',
+  prompt: `You are a multilingual AI chatbot that specializes in agriculture and plant care. Your entire response and all text in your structured JSON output MUST be in the user's selected language.
 
 User message: {{{userMessage}}}
 

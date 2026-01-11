@@ -36,7 +36,7 @@ const expandFAQPrompt = ai.definePrompt({
   The user has selected the following question:
   "{{question}}"
 
-  Your response MUST be in the following language: {{{language}}}.
+  Your entire response and all text in your structured JSON output MUST be in the following language: {{{language}}}.
 
   Provide a detailed and contextually relevant answer that expands on the initial scope of the question. Be as helpful as possible.
   `,

@@ -47,7 +47,7 @@ const prompt = ai.definePrompt({
   input: {schema: ImageBasedPlantDiseaseDetectionInputSchema},
   output: {schema: ImageBasedPlantDiseaseDetectionOutputSchema},
   model: 'googleai/gemini-2.5-flash',
-  prompt: `You are an expert in plant diseases. A user will provide an image of a plant. Your response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}.
+  prompt: `You are an expert in plant diseases. A user will provide an image of a plant. Your entire response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}.
 
 Image: {{media url=photoDataUri}}
 
@@ -63,7 +63,7 @@ If a disease is detected, provide the following information:
 - Chemical Treatments: Provide at least two distinct chemical treatment options. For each, include its name, a brief description of its application, and a valid, placeholder URL for a product link (e.g., https://example.com/shop/product-name).
 - Prevention Tips: A paragraph with actionable tips to prevent this disease in the future.
 
-Respond with the extracted information in the structured JSON format. Ensure all text is in {{{language}}}.`,
+Respond with the extracted information in the structured JSON format. Ensure all text in your response is in {{{language}}}.`,
 });
 
 const imageBasedPlantDiseaseDetectionFlow = ai.defineFlow(

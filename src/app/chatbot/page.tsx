@@ -111,13 +111,15 @@ export default function ChatbotPage() {
     try {
       let response;
       let aiResponseMessage: string;
+      const userLanguage = appUser.language || 'en';
+
       if (predefinedQuestions.includes(messageContent)) {
-        response = await expandFAQ({ question: messageContent, language: appUser.language || 'en' });
+        response = await expandFAQ({ question: messageContent, language: userLanguage });
         aiResponseMessage = response.expandedAnswer;
       } else {
         response = await multilingualAIChatbotResponses({
           userMessage: messageContent,
-          language: appUser.language,
+          language: userLanguage,
         });
         aiResponseMessage = response.aiResponse;
       }
@@ -127,20 +129,6 @@ export default function ChatbotPage() {
         content: aiResponseMessage,
       };
       setMessages((prev) => [...prev, aiMessage]);
-
-      if (db && appUser) {
-        try {
-          await addDoc(collection(db, 'users', appUser.uid, 'chatRecords'), {
-            userMessage: messageContent,
-            aiResponse: aiResponseMessage,
-            language: appUser.language,
-            timestamp: serverTimestamp(),
-          });
-        } catch (firestoreError) {
-           console.error("Failed to save chat record:", firestoreError);
-           // Non-blocking, so we don't show a toast for this
-        }
-      }
 
       speak(aiResponseMessage);
 
