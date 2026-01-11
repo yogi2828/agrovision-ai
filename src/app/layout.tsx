@@ -8,7 +8,6 @@ import { Inter as FontSans } from 'next/font/google';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import Navbar from '@/components/layout/navbar';
 import Footer from '@/components/layout/footer';
-import { usePathname } from 'next/navigation';
 
 const fontSans = FontSans({
   subsets: ['latin'],
