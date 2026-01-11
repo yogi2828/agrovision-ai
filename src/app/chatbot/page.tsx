@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -99,7 +100,7 @@ export default function ChatbotPage() {
 
 
   const handleSend = async (messageContent: string) => {
-    if (!messageContent.trim() || !appUser) return;
+    if (!messageContent.trim()) return;
     const userMessage: Message = { role: 'user', content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
@@ -108,7 +109,7 @@ export default function ChatbotPage() {
     try {
       let response;
       let aiResponseMessage: string;
-      const userLanguage = appUser.language || 'en';
+      const userLanguage = appUser?.language || 'en';
 
       if (predefinedQuestions.includes(messageContent)) {
         response = await expandFAQ({ question: messageContent, language: userLanguage });
@@ -127,7 +128,9 @@ export default function ChatbotPage() {
       };
       setMessages((prev) => [...prev, aiMessage]);
 
-      speak(aiResponseMessage);
+      if (appUser?.voiceEnabled) {
+        speak(aiResponseMessage);
+      }
 
     } catch (error) {
       console.error('AI response error:', error);
@@ -148,17 +151,17 @@ export default function ChatbotPage() {
   };
 
   const speak = (text: string) => {
-    if (!appUser?.voiceEnabled || !window.speechSynthesis) return;
+    if (!window.speechSynthesis) return;
     
     if (speechSynthesis.speaking) {
       speechSynthesis.cancel();
     }
     
     const utterance = new SpeechSynthesisUtterance(text);
-    if(appUser.language) {
+    if(appUser?.language) {
       utterance.lang = appUser.language;
     }
-    if(appUser.voiceSpeed) {
+    if(appUser?.voiceSpeed) {
       utterance.rate = appUser.voiceSpeed;
     }
     utterance.onstart = () => setIsSpeaking(true);
@@ -188,6 +191,7 @@ export default function ChatbotPage() {
       recognitionRef.current.stop();
       setListening(false);
     } else {
+      recognitionRef.current.lang = appUser?.language || 'en-US';
       recognitionRef.current.start();
       setListening(true);
     }
@@ -208,7 +212,9 @@ export default function ChatbotPage() {
                 <VolumeX className="h-6 w-6 text-red-500" />
               </Button>
             ) : (
-              <Volume2 className="h-6 w-6 text-muted-foreground" />
+               <Button variant="ghost" size="icon" disabled={!messages.some(m => m.role === 'assistant')}>
+                <Volume2 className="h-6 w-6 text-muted-foreground" />
+              </Button>
             )
           )}
         </CardHeader>
