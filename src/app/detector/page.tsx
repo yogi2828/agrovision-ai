@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -31,7 +30,7 @@ import {
   type VoiceQueryPlantDiseaseDetectionOutput,
 } from '@/ai/flows/voice-query-plant-disease-detection';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { Progress } from '@/components/ui/progress';
 import {
   Tooltip,
@@ -39,9 +38,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import type { User as AppUser } from '@/lib/types';
+
 
 export default function DetectorPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const appUser = user as AppUser | null;
   const db = useFirestore();
   const { toast } = useToast();
 
@@ -87,7 +89,7 @@ export default function DetectorPage() {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = user?.language || 'en-US';
+    recognition.lang = appUser?.language || 'en-US';
     recognition.continuous = false;
     recognition.interimResults = true;
 
@@ -116,7 +118,7 @@ export default function DetectorPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!voiceQuery.trim() || !user) {
+    if (!voiceQuery.trim() || !user || !db) {
       toast({
         title: 'Input Required',
         description: 'Please provide a voice query describing the symptoms.',
@@ -131,15 +133,16 @@ export default function DetectorPage() {
     try {
       const response = await voiceQueryPlantDiseaseDetection({
         voiceQuery,
-        language: user.language,
+        language: (user as AppUser).language,
       });
       setResult(response);
       await addDoc(collection(db, 'users', user.uid, 'diseaseRecords'), {
-        ...response,
         plantName: response.plantName,
         disease: response.diseaseName,
         treatment: response.treatment,
         timestamp: serverTimestamp(),
+        // Spread the rest of the response, which might contain more fields than the type
+        ...response,
       });
       toast({
         title: 'Analysis Complete',

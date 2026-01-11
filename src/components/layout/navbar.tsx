@@ -18,8 +18,8 @@ import {
   Sun,
   Thermometer,
 } from 'lucide-react';
+import { signOut as firebaseSignOut } from 'firebase/auth';
 
-import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -32,8 +32,10 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supportedLanguages } from '@/lib/languages';
 import { doc, updateDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth, useUser } from '@/firebase';
 import { useState } from 'react';
+import type { User as AppUser } from '@/lib/types';
+
 
 const navLinks = [
   { href: '/dashboard', label: 'Home', icon: <Home className="h-4 w-4" /> },
@@ -44,11 +46,17 @@ const navLinks = [
   },
   { href: '/chatbot', label: 'AI Chatbot', icon: <Bot className="h-4 w-4" /> },
   { href: '/history', label: 'History', icon: <History className="h-4 w-4" /> },
+];
+
+const publicNavLinks = [
   { href: '/about', label: 'About Us', icon: <Info className="h-4 w-4" /> },
+  { href: '/#features', label: 'Features', icon: <Info className="h-4 w-4" /> },
 ];
 
 export default function Navbar() {
-  const { user, signOut } = useAuth();
+  const { user } = useUser();
+  const appUser = user as AppUser | null;
+  const auth = useAuth();
   const db = useFirestore();
   const { setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -64,7 +72,13 @@ export default function Navbar() {
     }
   };
 
-  const NavContent = () => (
+  const handleSignOut = async () => {
+    if (auth) {
+      await firebaseSignOut(auth);
+    }
+  };
+
+  const AuthedNavContent = () => (
     <>
       {navLinks.map((link) => (
         <Button
@@ -81,6 +95,25 @@ export default function Navbar() {
       ))}
     </>
   );
+
+   const PublicNavContent = () => (
+    <>
+      {publicNavLinks.map((link) => (
+        <Button
+          key={link.href}
+          variant="ghost"
+          asChild
+          className="justify-start"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <Link href={link.href} className="flex items-center gap-2">
+            {link.icon} {link.label}
+          </Link>
+        </Button>
+      ))}
+    </>
+  );
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -110,7 +143,7 @@ export default function Navbar() {
                 <span className="text-lg">AgroVision AI</span>
               </Link>
               <div className="flex flex-col gap-1 px-2">
-                <NavContent />
+                {user ? <AuthedNavContent /> : <PublicNavContent />}
               </div>
             </div>
           </SheetContent>
@@ -123,7 +156,7 @@ export default function Navbar() {
 
 
         <nav className="hidden md:flex items-center space-x-1 ml-6 text-sm font-medium">
-          {user && <NavContent />}
+          {user ? <AuthedNavContent /> : <PublicNavContent />}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
           {user && (
@@ -140,7 +173,7 @@ export default function Navbar() {
                   <DropdownMenuItem
                     key={lang.code}
                     onSelect={() => handleLanguageChange(lang.code)}
-                    disabled={user.language === lang.code}
+                    disabled={appUser?.language === lang.code}
                   >
                     {lang.name}
                   </DropdownMenuItem>
@@ -197,7 +230,7 @@ export default function Navbar() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={signOut}>
+                <DropdownMenuItem onSelect={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>

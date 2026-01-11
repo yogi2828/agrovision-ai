@@ -8,26 +8,18 @@ import React, {
   type ReactNode,
 } from 'react';
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { useUser, useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/navbar';
-import Footer from '@/components/layout/footer';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,7 +28,6 @@ const publicRoutes = ['/', '/about', '/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: firebaseUser, isUserLoading } = useUser();
-  const auth = useFirebaseAuth();
   const db = useFirestore();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (firebaseUser) {
       const userRef = doc(db, 'users', firebaseUser.uid);
-      const unsubSnapshot = onSnapshot(userRef, async (docSnap) => {
+      const unsubSnapshot = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const customData = docSnap.data();
           setUser({
@@ -62,20 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } as User);
         } else {
           // This case might happen if Firestore doc creation fails after auth creation
-           const newUser: Omit<User, keyof FirebaseUser> = {
+          setUser({
+            ...firebaseUser,
             language: 'en',
             voiceEnabled: true,
             voiceSpeed: 1,
-          };
-          await setDoc(userRef, {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName,
-            email: firebaseUser.email,
-            ...newUser
-          });
-          setUser({
-            ...firebaseUser,
-            ...newUser,
           } as User);
         }
         if (publicRoutes.includes(pathname)) {
@@ -93,38 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [firebaseUser, isUserLoading, pathname, router, db]);
 
-  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const { user: newUser } = userCredential;
-    
-    // Update Firebase Auth profile
-    await updateProfile(newUser, { displayName });
-
-    // Create user document in Firestore
-    const userRef = doc(db, 'users', newUser.uid);
-    await setDoc(userRef, {
-      id: newUser.uid,
-      name: displayName,
-      email: newUser.email,
-      preferredLanguage: 'en',
-      voiceEnabled: true,
-    });
-  };
-
-  const signInWithEmail = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-  };
-
-  const signOut = async () => {
-    try {
-      await firebaseSignOut(auth);
-      router.push('/login');
-    } catch (error) {
-      console.error('Error during Sign-Out: ', error);
-    }
-  };
-
-  const value = { user, loading, signUpWithEmail, signInWithEmail, signOut };
+  const value = { user, loading };
 
   const showLoader = loading && !publicRoutes.includes(pathname);
   const showRedirectLoader = !user && !publicRoutes.includes(pathname);
@@ -137,13 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const showNavAndFooter = !loading && user && !publicRoutes.includes(pathname);
+  const showNav = !loading;
 
   return (
     <AuthContext.Provider value={value}>
-      {showNavAndFooter && <Navbar />}
-      {children}
-      {showNavAndFooter && <Footer />}
+      {showNav && <Navbar />}
+      <div className="relative flex min-h-screen flex-col">
+        <main className="flex-1">{children}</main>
+      </div>
     </AuthContext.Provider>
   );
 }

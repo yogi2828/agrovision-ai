@@ -1,20 +1,26 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, Mail, Languages, Settings } from 'lucide-react';
+import { useAuth, useUser } from '@/firebase';
+import { signOut as firebaseSignOut } from 'firebase/auth';
+import type { User as AppUser } from '@/lib/types';
 
 export default function ProfilePage() {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const router = useRouter();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const appUser = user as AppUser | null;
 
+  const handleSignOut = async () => {
+    if (auth) {
+      await firebaseSignOut(auth);
+    }
+  };
 
-  if (authLoading || !user) {
+  if (isUserLoading || !appUser) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -28,34 +34,34 @@ export default function ProfilePage() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <Avatar className="h-24 w-24 border-4 border-primary">
-              <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+              <AvatarImage src={appUser.photoURL || ''} alt={appUser.displayName || 'User'} />
               <AvatarFallback className="text-3xl bg-secondary">
-                {user.displayName?.charAt(0).toUpperCase()}
+                {appUser.displayName?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
           </div>
-          <CardTitle className="font-headline text-3xl">{user.displayName}</CardTitle>
+          <CardTitle className="font-headline text-3xl">{appUser.displayName}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
             <Mail className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-semibold">{user.email}</p>
+              <p className="font-semibold">{appUser.email}</p>
             </div>
           </div>
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
             <Languages className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Preferred Language</p>
-              <p className="font-semibold">{user.language.toUpperCase()}</p>
+              <p className="font-semibold">{appUser.language.toUpperCase()}</p>
             </div>
           </div>
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
             <User className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">User ID</p>
-              <p className="font-semibold text-xs">{user.uid}</p>
+              <p className="font-semibold text-xs">{appUser.uid}</p>
             </div>
           </div>
         </CardContent>
@@ -66,7 +72,7 @@ export default function ProfilePage() {
               Manage Preferences
             </Link>
           </Button>
-          <Button variant="destructive" onClick={signOut}>
+          <Button variant="destructive" onClick={handleSignOut}>
             Log Out
           </Button>
         </CardFooter>

@@ -5,7 +5,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { Inter as FontSans } from 'next/font/google';
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -37,14 +37,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <FirebaseClientProvider>
-            <AuthProvider>
-              <div className="relative flex min-h-screen flex-col">
-                <main className="flex-1">{children}</main>
-              </div>
-              <Toaster />
-            </AuthProvider>
+            <AuthProvider>{children}</AuthProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   );

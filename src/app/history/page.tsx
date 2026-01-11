@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/use-auth';
 import {
   Tabs,
   TabsContent,
@@ -35,7 +34,7 @@ import {
   getDocs,
   type Timestamp,
 } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 
 type DetectionHistory = {
@@ -55,7 +54,7 @@ type ChatHistory = {
 };
 
 export default function HistoryPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const db = useFirestore();
   const [detections, setDetections] = useState<DetectionHistory[]>([]);
   const [chats, setChats] = useState<ChatHistory[]>([]);

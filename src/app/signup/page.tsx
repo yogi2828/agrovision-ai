@@ -1,6 +1,9 @@
 'use client';
 
-import { useAuth } from '@/hooks/use-auth';
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,9 +15,13 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth, useUser, useFirestore } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function SignUpPage() {
-  const { user, loading, signUpWithEmail } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -24,19 +31,34 @@ export default function SignUpPage() {
   const [isSigningUp, setIsSigningUp] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!isUserLoading && user) {
       router.push('/dashboard');
     }
-  }, [user, loading, router]);
+  }, [user, isUserLoading, router]);
   
   const signupImage = PlaceHolderImages.find(p => p.id === '7');
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth || !db) return;
     setIsSigningUp(true);
     try {
-      await signUpWithEmail(email, password, name);
-      // Redirect is handled by the AuthProvider
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const { user: newUser } = userCredential;
+      
+      // Update Firebase Auth profile
+      await updateProfile(newUser, { displayName: name });
+  
+      // Create user document in Firestore
+      const userRef = doc(db, 'users', newUser.uid);
+      await setDoc(userRef, {
+        id: newUser.uid,
+        name: name,
+        email: newUser.email,
+        preferredLanguage: 'en',
+        voiceEnabled: true,
+      });
+
     } catch (error: any) {
       console.error(error);
        let description = "An unexpected error occurred. Please try again.";
@@ -54,7 +76,7 @@ export default function SignUpPage() {
     }
   };
 
-  if (loading || user) {
+  if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

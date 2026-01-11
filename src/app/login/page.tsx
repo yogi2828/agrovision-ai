@@ -1,6 +1,8 @@
 'use client';
 
-import { useAuth } from '@/hooks/use-auth';
+import {
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,9 +14,11 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth, useUser } from '@/firebase';
 
 export default function LoginPage() {
-  const { user, loading, signInWithEmail } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
@@ -22,18 +26,19 @@ export default function LoginPage() {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!isUserLoading && user) {
       router.push('/dashboard');
     }
-  }, [user, loading, router]);
+  }, [user, isUserLoading, router]);
   
   const loginImage = PlaceHolderImages.find(p => p.id === '6');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
     setIsSigningIn(true);
     try {
-      await signInWithEmail(email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       // Redirect is handled by the AuthProvider
     } catch (error: any) {
       console.error(error);
@@ -50,7 +55,7 @@ export default function LoginPage() {
     }
   };
 
-  if (loading || user) {
+  if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

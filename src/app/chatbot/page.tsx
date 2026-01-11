@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -27,8 +26,9 @@ import { cn } from '@/lib/utils';
 import { expandFAQ } from '@/ai/flows/dynamic-faq-expansion';
 import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatbot-responses';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import type { User as AppUser } from '@/lib/types';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -44,7 +44,8 @@ const predefinedQuestions = [
 ];
 
 export default function ChatbotPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const appUser = user as AppUser | null;
   const db = useFirestore();
   const { toast } = useToast();
 
@@ -57,12 +58,12 @@ export default function ChatbotPage() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const saveToHistory = async (userMessage: string, aiResponse: string) => {
-    if (!user) return;
+    if (!appUser || !db) return;
     try {
-      await addDoc(collection(db, 'users', user.uid, 'chatRecords'), {
+      await addDoc(collection(db, 'users', appUser.uid, 'chatRecords'), {
         userMessage,
         aiResponse,
-        language: user.language,
+        language: appUser.language,
         timestamp: serverTimestamp(),
       });
     } catch (error) {
@@ -76,7 +77,7 @@ export default function ChatbotPage() {
   };
 
   const handleSend = async (messageContent: string) => {
-    if (!messageContent.trim() || !user) return;
+    if (!messageContent.trim() || !appUser) return;
     const userMessage: Message = { role: 'user', content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
@@ -91,7 +92,7 @@ export default function ChatbotPage() {
       } else {
         response = await multilingualAIChatbotResponses({
           userMessage: messageContent,
-          language: user.language,
+          language: appUser.language,
         });
         aiResponseMessage = response.aiResponse;
       }
@@ -123,18 +124,18 @@ export default function ChatbotPage() {
   };
 
   const speak = (text: string) => {
-    if (!user?.voiceEnabled || !window.speechSynthesis) return;
+    if (!appUser?.voiceEnabled || !window.speechSynthesis) return;
     
     if (speechSynthesis.speaking) {
       speechSynthesis.cancel();
     }
     
     const utterance = new SpeechSynthesisUtterance(text);
-    if(user.language) {
-      utterance.lang = user.language;
+    if(appUser.language) {
+      utterance.lang = appUser.language;
     }
-    if(user.voiceSpeed) {
-      utterance.rate = user.voiceSpeed;
+    if(appUser.voiceSpeed) {
+      utterance.rate = appUser.voiceSpeed;
     }
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
@@ -168,7 +169,7 @@ export default function ChatbotPage() {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = user?.language || 'en-US';
+    recognition.lang = appUser?.language || 'en-US';
     recognition.continuous = false;
     recognition.interimResults = false;
 
@@ -197,7 +198,7 @@ export default function ChatbotPage() {
             <Bot className="h-7 w-7 text-primary" />
             AI Chatbot
           </CardTitle>
-          {user?.voiceEnabled && (
+          {appUser?.voiceEnabled && (
             isSpeaking ? (
               <Button variant="ghost" size="icon" onClick={stopSpeaking}>
                 <VolumeX className="h-6 w-6 text-red-500" />
@@ -296,7 +297,7 @@ export default function ChatbotPage() {
             >
               <Send className="h-4 w-4" />
             </Button>
-            {user?.voiceEnabled && (
+            {appUser?.voiceEnabled && (
               <Button
                 onClick={handleVoiceInput}
                 disabled={isLoading}

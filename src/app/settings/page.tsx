@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -24,9 +23,10 @@ import {
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { supportedLanguages } from '@/lib/languages';
 import { useTheme } from 'next-themes';
+import type { User as AppUser } from '@/lib/types';
 
 type SettingsFormValues = {
   language: string;
@@ -36,7 +36,8 @@ type SettingsFormValues = {
 };
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const appUser = user as AppUser | null;
   const db = useFirestore();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
@@ -53,18 +54,18 @@ export default function SettingsPage() {
 
 
   useEffect(() => {
-    if (user) {
+    if (appUser) {
       reset({
-        language: user.language || 'en',
-        voiceEnabled: user.voiceEnabled ?? true,
-        voiceSpeed: user.voiceSpeed ?? 1,
+        language: appUser.language || 'en',
+        voiceEnabled: appUser.voiceEnabled ?? true,
+        voiceSpeed: appUser.voiceSpeed ?? 1,
         theme: theme || 'system',
       });
     }
-  }, [user, theme, reset]);
+  }, [appUser, theme, reset]);
 
   const onSubmit = async (data: SettingsFormValues) => {
-    if (!user) return;
+    if (!user || !db) return;
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {

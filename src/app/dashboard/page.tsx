@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,8 +19,9 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { formatDistanceToNow } from 'date-fns';
+import type { User as AppUser } from '@/lib/types';
 
 type ActivityItem = {
   id: string;
@@ -31,7 +31,8 @@ type ActivityItem = {
 };
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const appUser = user as AppUser | null;
   const db = useFirestore();
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
@@ -119,9 +120,9 @@ export default function DashboardPage() {
         <p className="text-lg text-muted-foreground">
           Welcome back to your AgroVision dashboard. Ready to check on your plants?
         </p>
-        {user.language && (
+        {appUser?.language && (
             <p className="text-sm text-muted-foreground">
-            Current language: <span className="font-semibold text-primary">{user.language.toUpperCase()}</span>
+            Current language: <span className="font-semibold text-primary">{appUser.language.toUpperCase()}</span>
             </p>
         )}
       </div>
