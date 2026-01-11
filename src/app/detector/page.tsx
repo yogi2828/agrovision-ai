@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -27,7 +27,6 @@ import {
   FileQuestion,
   X,
   ChevronRight,
-  Mic,
   VolumeX,
   Volume2,
 } from 'lucide-react';
@@ -42,12 +41,6 @@ import type { User as AppUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
 
 export default function DetectorPage() {
   const { user } = useUser();
@@ -56,33 +49,10 @@ export default function DetectorPage() {
   const { toast } = useToast();
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [voiceQuery, setVoiceQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [result, setResult] = useState<ImageBasedPlantDiseaseDetectionOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
-
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-
-      recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setVoiceQuery(transcript);
-        handleSubmit(null, transcript);
-      };
-      recognitionRef.current.onerror = (event: any) => {
-        toast({ title: 'Voice Error', description: `Could not process voice: ${event.error}`, variant: 'destructive' });
-        setIsListening(false);
-      };
-      recognitionRef.current.onend = () => setIsListening(false);
-    }
-  }, [toast]);
 
   const speak = (text: string, lang: string, rate: number) => {
     if (!window.speechSynthesis) return;
@@ -103,20 +73,6 @@ export default function DetectorPage() {
     setIsSpeaking(false);
   };
 
-  const handleVoiceInput = () => {
-    if (!recognitionRef.current) {
-      toast({ title: 'Unsupported Browser', description: 'Voice recognition is not supported.', variant: 'destructive' });
-      return;
-    }
-    if (isListening) {
-      recognitionRef.current.stop();
-    } else {
-      recognitionRef.current.lang = appUser?.language || 'en-IN';
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  };
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -124,7 +80,6 @@ export default function DetectorPage() {
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
         setResult(null);
-        setVoiceQuery('');
       };
       reader.readAsDataURL(file);
     }
@@ -136,10 +91,10 @@ export default function DetectorPage() {
     if(fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  const handleSubmit = async (e: React.FormEvent | null, voiceText?: string) => {
-    e?.preventDefault();
-    if (!imagePreview && !voiceText) {
-      toast({ title: 'Input Required', description: 'Please upload an image or ask a question by voice.', variant: 'destructive' });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!imagePreview) {
+      toast({ title: 'Input Required', description: 'Please upload an image to analyze.', variant: 'destructive' });
       return;
     }
     if (!appUser || !db) return;
@@ -149,8 +104,7 @@ export default function DetectorPage() {
 
     try {
       const response = await imageBasedPlantDiseaseDetection({
-        photoDataUri: imagePreview || undefined,
-        question: voiceText || undefined,
+        photoDataUri: imagePreview,
         language: appUser.language || 'en-IN',
       });
       setResult(response);
@@ -165,7 +119,7 @@ export default function DetectorPage() {
         diseaseName: response.diseaseName,
         symptoms: response.symptoms,
         causes: response.causes,
-        treatment: response.treatment,
+        treatment: response.organicTreatments.length > 0 ? response.organicTreatments.map(t => `${t.productName}: ${t.instructions}`).join('; ') : 'N/A',
         prevention: response.prevention,
         language: appUser.language,
         timestamp: serverTimestamp(),
@@ -176,10 +130,10 @@ export default function DetectorPage() {
         description: `Diagnosis: ${response.diseaseName} on ${response.plantName}.`,
       });
     } catch (error) {
+      console.error(error);
       toast({ title: 'Analysis Failed', description: 'Could not complete the analysis. Please try again.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
-      setVoiceQuery('');
     }
   };
 
@@ -190,11 +144,29 @@ export default function DetectorPage() {
       </div>
   );
 
+  const TreatmentList = ({ treatments, title }: { treatments: { productName: string; instructions: string; link: string; }[], title: string }) => (
+    <div>
+        <h4 className="font-semibold text-md mb-2">{title}</h4>
+        <ul className="space-y-2">
+            {treatments.map((treatment, index) => (
+                <li key={index} className="text-sm border-l-2 border-primary pl-3">
+                    <strong className="font-medium">{treatment.productName}</strong>
+                    <p className="text-xs">{treatment.instructions}</p>
+                    <a href={treatment.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                        Example Link
+                    </a>
+                </li>
+            ))}
+        </ul>
+    </div>
+);
+
+
   return (
     <div className="container py-8 md:py-12">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold font-headline tracking-tight">Plant Disease Detector</h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Upload an image or use your voice to ask about a plant. Our AI will analyze it for diseases and provide expert recommendations.</p>
+        <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Upload an image of a plant. Our AI will analyze it for diseases and provide expert recommendations.</p>
       </div>
       <div className="grid lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2">
@@ -205,7 +177,7 @@ export default function DetectorPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="plant-image" className="cursor-pointer group">Upload Image (Optional)</Label>
+                  <Label htmlFor="plant-image" className="cursor-pointer group">Upload Image</Label>
                   <div className={cn("relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:bg-secondary transition-colors", imagePreview && "p-0")}>
                     <Input id="plant-image" type="file" accept="image/*" onChange={handleImageChange} ref={fileInputRef} className="hidden" />
                     {imagePreview ? (
@@ -222,14 +194,8 @@ export default function DetectorPage() {
                     )}
                   </div>
                 </div>
-                <div className="text-center text-muted-foreground font-bold">OR</div>
-                <Button type="button" onClick={handleVoiceInput} variant={isListening ? 'destructive' : 'outline'} className="w-full" disabled={isLoading}>
-                  <Mic className="mr-2 h-4 w-4" />
-                  {isListening ? 'Listening...' : 'Ask by Voice'}
-                </Button>
-                {voiceQuery && <p className="text-sm text-center text-muted-foreground italic">You asked: "{voiceQuery}"</p>}
-
-                <Button type="submit" className="w-full" disabled={isLoading || (!imagePreview && !voiceQuery)}>
+                
+                <Button type="submit" className="w-full" disabled={isLoading || !imagePreview}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ChevronRight className="mr-2 h-4 w-4" />}
                   Analyze Plant
                 </Button>
@@ -271,7 +237,12 @@ export default function DetectorPage() {
                     <Separator />
                     <AnalysisSection icon={<Siren className="w-5 h-5 text-primary" />} title="Causes"><p>{result.causes}</p></AnalysisSection>
                     <Separator />
-                    <AnalysisSection icon={<HeartPulse className="w-5 h-5 text-primary" />} title="Treatment"><p>{result.treatment}</p></AnalysisSection>
+                    <AnalysisSection icon={<HeartPulse className="w-5 h-5 text-primary" />} title="Treatment">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <TreatmentList treatments={result.organicTreatments} title="Organic Treatments" />
+                           <TreatmentList treatments={result.chemicalTreatments} title="Chemical Treatments" />
+                        </div>
+                    </AnalysisSection>
                     <Separator />
                     <AnalysisSection icon={<Sparkles className="w-5 h-5 text-primary" />} title="Prevention"><p>{result.prevention}</p></AnalysisSection>
                   </div>
@@ -280,7 +251,7 @@ export default function DetectorPage() {
                 <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-16">
                   <FileQuestion className="h-16 w-16 mb-4" />
                   <p className="font-semibold text-lg">Your analysis will appear here.</p>
-                  <p className="text-sm">Upload a plant image or ask a voice question to get started.</p>
+                  <p className="text-sm">Upload a plant image to get started.</p>
                 </div>
               )}
             </CardContent>

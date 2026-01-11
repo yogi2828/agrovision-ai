@@ -21,9 +21,8 @@ const ImageBasedPlantDiseaseDetectionInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo of a plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ).optional(),
-  question: z.string().describe("The user's voice question about the plant.").optional(),
+      "A photo of a plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
+    ),
   language: z.string().describe("The language for the AI to respond in (e.g., 'hi-IN')."),
 });
 export type ImageBasedPlantDiseaseDetectionInput = z.infer<typeof ImageBasedPlantDiseaseDetectionInputSchema>;
@@ -51,14 +50,9 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert plant pathologist. Your analysis and response must be comprehensive and actionable for a farmer or gardener.
 Your entire response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}. Do not use any other language under any circumstances.
 
-{{#if photoDataUri}}
 Analyze this image: {{media url=photoDataUri}}
-{{/if}}
-{{#if question}}
-Consider this question: "{{{question}}}"
-{{/if}}
 
-Your task is to analyze the image and/or question and provide a detailed diagnosis.
+Your task is to analyze the image and provide a detailed diagnosis.
 
 If the plant is healthy:
 - Set the diseaseName to "Healthy" (translated to the user's language).
