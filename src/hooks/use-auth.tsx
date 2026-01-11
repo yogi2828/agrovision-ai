@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Provide default values if they are missing from firestore
             language: customData.language || 'en',
             voiceEnabled: customData.voiceEnabled ?? true,
-            voiceSpeed: custom.voiceSpeed ?? 1,
+            voiceSpeed: customData.voiceSpeed ?? 1,
           };
           setUser(enrichedUser);
         } else {
