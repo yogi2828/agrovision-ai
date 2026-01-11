@@ -22,7 +22,7 @@ const ImageBasedPlantDiseaseDetectionInputSchema = z.object({
     .describe(
       "A photo of a plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  language: z.string().describe('The language to respond in.'),
+  language: z.string().describe('The language for the AI to respond in.'),
 });
 export type ImageBasedPlantDiseaseDetectionInput = z.infer<typeof ImageBasedPlantDiseaseDetectionInputSchema>;
 
@@ -47,11 +47,11 @@ const prompt = ai.definePrompt({
   input: {schema: ImageBasedPlantDiseaseDetectionInputSchema},
   output: {schema: ImageBasedPlantDiseaseDetectionOutputSchema},
   model: 'googleai/gemini-2.5-flash',
-  prompt: `You are an expert in plant diseases. A user will provide an image of a plant. Analyze the image and respond in the user's specified language: {{{language}}}.
+  prompt: `You are an expert in plant diseases. A user will provide an image of a plant. Your response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}.
 
 Image: {{media url=photoDataUri}}
 
-Your task is to analyze the image and provide a comprehensive diagnosis. If the plant is healthy, set the diseaseName to "Healthy" and provide general care tips in the other fields.
+Your task is to analyze the image and provide a comprehensive diagnosis. If the plant is healthy, set the diseaseName to "Healthy" (translated to the user's language) and provide general care tips in the other fields.
 
 If a disease is detected, provide the following information:
 - Plant Name: The name of the plant in the image.

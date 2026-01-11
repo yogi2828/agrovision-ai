@@ -29,7 +29,7 @@ const prompt = ai.definePrompt({
   name: 'multilingualAIChatbotResponsesPrompt',
   input: {schema: MultilingualAIChatbotResponsesInputSchema},
   output: {schema: MultilingualAIChatbotResponsesOutputSchema},
-  prompt: `You are a multilingual AI chatbot that responds in the user's selected language.
+  prompt: `You are a multilingual AI chatbot that specializes in agriculture and plant care. Your response MUST be in the user's selected language.
 
 User message: {{{userMessage}}}
 

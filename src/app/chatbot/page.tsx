@@ -28,6 +28,9 @@ import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatb
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+
 
 type Message = {
   role: 'user' | 'assistant';
@@ -52,6 +55,7 @@ declare global {
 
 export default function ChatbotPage() {
   const { user } = useUser();
+  const db = useFirestore();
   const appUser = user as AppUser | null;
   const { toast } = useToast();
 
@@ -108,7 +112,7 @@ export default function ChatbotPage() {
       let response;
       let aiResponseMessage: string;
       if (predefinedQuestions.includes(messageContent)) {
-        response = await expandFAQ({ question: messageContent });
+        response = await expandFAQ({ question: messageContent, language: appUser.language || 'en' });
         aiResponseMessage = response.expandedAnswer;
       } else {
         response = await multilingualAIChatbotResponses({
@@ -123,6 +127,21 @@ export default function ChatbotPage() {
         content: aiResponseMessage,
       };
       setMessages((prev) => [...prev, aiMessage]);
+
+      if (db && appUser) {
+        try {
+          await addDoc(collection(db, 'users', appUser.uid, 'chatRecords'), {
+            userMessage: messageContent,
+            aiResponse: aiResponseMessage,
+            language: appUser.language,
+            timestamp: serverTimestamp(),
+          });
+        } catch (firestoreError) {
+           console.error("Failed to save chat record:", firestoreError);
+           // Non-blocking, so we don't show a toast for this
+        }
+      }
+
       speak(aiResponseMessage);
 
     } catch (error) {

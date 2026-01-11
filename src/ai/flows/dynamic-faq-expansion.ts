@@ -13,6 +13,7 @@ import {z} from 'genkit';
 
 const ExpandFAQInputSchema = z.object({
   question: z.string().describe('The predefined question selected by the user.'),
+  language: z.string().describe("The language for the AI to respond in."),
 });
 export type ExpandFAQInput = z.infer<typeof ExpandFAQInputSchema>;
 
@@ -33,7 +34,9 @@ const expandFAQPrompt = ai.definePrompt({
   prompt: `You are an AI chatbot assistant designed to provide comprehensive answers to predefined questions about plant care and diseases.
 
   The user has selected the following question:
-  {{question}}
+  "{{question}}"
+
+  Your response MUST be in the following language: {{{language}}}.
 
   Provide a detailed and contextually relevant answer that expands on the initial scope of the question. Be as helpful as possible.
   `,
