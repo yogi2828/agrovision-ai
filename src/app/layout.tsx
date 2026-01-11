@@ -1,4 +1,3 @@
-import 'regenerator-runtime/runtime';
 import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
