@@ -1,9 +1,9 @@
-import 'regenerator-runtime/runtime';
 import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
+import 'regenerator-runtime/runtime';
 import { Inter as FontSans } from 'next/font/google';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import Navbar from '@/components/layout/navbar';
