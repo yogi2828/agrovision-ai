@@ -1,139 +1,123 @@
 /**
- * Core Philosophy: This ruleset enforces a strict user-ownership model. All data is
- * considered private and is scoped directly to the authenticated user who created it.
- * Access to another user's data is explicitly forbidden.
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. All data is considered private and is only accessible by the user who created it. There is no concept of public or shared data in this model.
  *
- * Data Structure: All application data is nested under the `/users/{userId}` path.
- * This top-level document stores the user's profile, and all other user-specific data,
- * such as disease detection history and chat history, are stored in subcollections
- * within this user-specific data tree.
+ * Data Structure: The entire data model is hierarchical and user-centric. All application data, including user profiles, disease records, and chat history, is nested within a top-level `users` collection under a document corresponding to the user's unique ID (`/users/{userId}/...`). This structure inherently isolates each user's data.
  *
  * Key Security Decisions:
- * - User Isolation: A user can only ever read or write data within their own
- *   document tree (i.e., `/users/{request.auth.uid}/...`).
- * - No User Listing: It is not possible to query the top-level `/users` collection.
- *   This prevents users from discovering other users in the system.
- * - Profile Deletion Disabled: User profile documents (`/users/{userId}`) cannot be
- *   deleted directly by the client to prevent accidental data loss. This should be
- *   handled by a trusted server-side process if needed.
- *
- * Denormalization for Authorization: The security model relies on path-based
- * authorization. The `userId` in the document path is the sole source of truth for
- * ownership. Subcollections contain a denormalized `userId` field, which is validated
- * against the path to ensure relational integrity without requiring extra `get()` calls.
- *
- * Structural Segregation: User-specific data (`diseaseHistory`, `chatHistory`) is
- * segregated into distinct subcollections under the user's main document. This
- * enforces clear security boundaries and simplifies rules, as all documents within a
- * given subcollection path share the same ownership-based access controls.
+ * - User Isolation: A user can only ever read or write data within their own document tree (`/users/{their_own_userId}`).
+ * - No User Enumeration: The rules explicitly disallow listing the top-level `/users` collection, preventing any user from discovering the existence of other users.
+ * - Self-Creation: A user is permitted to create their own user profile document in the `/users` collection, but no one else's.
+ * - Path-Based Security: Authorization is derived directly from the document path, making the rules simple, fast, and highly secure without needing extra database reads (`get` calls).
+ * - Relational Integrity: On creation, rules ensure that documents contain an internal `userId` or `id` field that correctly matches the `userId` in the path, creating a verifiable link back to the owner. This ownership link is enforced as immutable on updates.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for reusable logic
-    // ------------------------------------
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
 
     /**
-     * Checks if a user is authenticated.
+     * Checks if the user is authenticated.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * Checks if the currently authenticated user's UID matches the given userId.
-     * This is the primary function for establishing document ownership.
+     * Checks if the requesting user's UID matches the document's owner ID from the path.
+     * This is the primary function for enforcing the user-ownership model.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * Checks for ownership on an existing document. Used for update and delete
-     * operations to ensure the target document exists before the operation.
+     * Validates ownership for an existing document. Used for update and delete operations.
+     * Ensures the document exists before allowing a state-changing operation.
      */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
     /**
-     * On create, validates that the incoming document's 'id' field matches the
-     * user's UID. This enforces relational integrity for the user profile document.
+     * Ensures the `id` field within a User document matches the document's path ID.
+     * This validates the relational link to the auth UID upon creation.
      */
-    function isCreatingOwnUserDoc(userId) {
+    function hasValidUserLink(userId) {
       return request.resource.data.id == userId;
     }
 
     /**
-     * On update, ensures the user's 'id' field cannot be changed.
+     * Ensures the `userId` field within a subcollection document matches its parent's path ID.
+     * This validates the relational link to the owner upon creation.
      */
-    function isImmutableUserId() {
-      return request.resource.data.id == resource.data.id;
-    }
-
-    /**
-     * On create, validates that a subcollection document's 'userId' field
-     * correctly references the parent user document.
-     */
-    function hasCorrectUserId(userId) {
+    function hasValidOwnerLink(userId) {
       return request.resource.data.userId == userId;
     }
-
+    
     /**
-     * On update, ensures that a subcollection document's 'userId' field
-     * cannot be changed, preserving the ownership link.
+     * Ensures a specific field cannot be changed after the document is created.
+     * Used to protect immutable ownership links and IDs.
      */
-    function hasImmutableParentUserId() {
-      return request.resource.data.userId == resource.data.userId;
+    function isImmutable(field) {
+      return request.resource.data[field] == resource.data[field];
     }
 
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
 
     /**
      * @description Manages user profile documents.
      * @path /users/{userId}
-     * @allow (create) An authenticated user can create their own profile document.
-     * @allow (get, update) An authenticated user can read and modify their own profile.
-     * @deny (list) Listing all user profiles is explicitly forbidden for security.
-     * @deny (get, update, delete) A user cannot access or delete another user's profile.
-     * @principle Restricts access to a user's own data tree and enforces self-creation.
+     * @allow (get) A user (auth.uid='user_abc') reads their own profile at `/users/user_abc`.
+     * @allow (create) A new user (auth.uid='user_abc') creates their profile at `/users/user_abc`.
+     * @deny (list) A user attempts to list all documents in the `/users` collection.
+     * @deny (get) A user (auth.uid='user_abc') tries to read another profile at `/users/user_xyz`.
+     * @principle Restricts access to a user's own data tree and allows profile self-creation.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && isCreatingOwnUserDoc(userId);
-      allow update: if isExistingOwner(userId) && isImmutableUserId();
-      allow delete: if false;
+      allow list: if false; // Disallow user enumeration for security
+      allow create: if isOwner(userId) && hasValidUserLink(userId);
+      allow update: if isExistingOwner(userId) && isImmutable('id');
+      allow delete: if isExistingOwner(userId);
+    }
 
-      /**
-       * @description Manages a user's private disease detection history records.
-       * @path /users/{userId}/diseaseHistory/{diseaseHistoryId}
-       * @allow (create, get, list, update, delete) A user can fully manage their own disease history records.
-       * @deny (any) A user cannot access another user's disease history in any way.
-       * @principle Enforces strict ownership for a user's private subcollection data.
-       */
-      match /diseaseHistory/{diseaseHistoryId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasCorrectUserId(userId);
-        allow update: if isExistingOwner(userId) && hasImmutableParentUserId();
-        allow delete: if isExistingOwner(userId);
-      }
+    /**
+     * @description Manages disease detection records, private to each user.
+     * @path /users/{userId}/diseaseRecords/{diseaseRecordId}
+     * @allow (create) A user (auth.uid='user_abc') creates a new disease record in their own subcollection.
+     * @allow (list) A user (auth.uid='user_abc') lists all of their own disease records.
+     * @deny (get) A user (auth.uid='user_abc') tries to read a record from another user's subcollection.
+     * @deny (update) A user tries to change the `userId` field on an existing record.
+     * @principle Enforces document ownership via path and validates relational integrity on writes.
+     */
+    match /users/{userId}/diseaseRecords/{diseaseRecordId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidOwnerLink(userId);
+      allow update: if isExistingOwner(userId) && isImmutable('userId');
+      allow delete: if isExistingOwner(userId);
+    }
 
-      /**
-       * @description Manages a user's private chat history with the AI.
-       * @path /users/{userId}/chatHistory/{chatHistoryId}
-       * @allow (create, get, list, update, delete) A user can fully manage their own chat history messages.
-       * @deny (any) A user cannot access another user's chat history in any way.
-       * @principle Enforces strict ownership for a user's private subcollection data.
-       */
-      match /chatHistory/{chatHistoryId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasCorrectUserId(userId);
-        allow update: if isExistingOwner(userId) && hasImmutableParentUserId();
-        allow delete: if isExistingOwner(userId);
-      }
+    /**
+     * @description Manages chat conversation records, private to each user.
+     * @path /users/{userId}/chatRecords/{chatRecordId}
+     * @allow (create) A user (auth.uid='user_abc') creates a new chat record in their own subcollection.
+     * @allow (list) A user (auth.uid='user_abc') lists all of their own chat records.
+     * @deny (get) A user (auth.uid='user_abc') tries to read a chat from another user's subcollection.
+     * @deny (update) A user tries to change the `userId` field on an existing chat record.
+     * @principle Enforces document ownership via path and validates relational integrity on writes.
+     */
+    match /users/{userId}/chatRecords/{chatRecordId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidOwnerLink(userId);
+      allow update: if isExistingOwner(userId) && isImmutable('userId');
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
