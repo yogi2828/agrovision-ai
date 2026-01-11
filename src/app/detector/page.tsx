@@ -118,7 +118,7 @@ export default function DetectorPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!voiceQuery.trim() || !user || !db) {
+    if (!voiceQuery.trim() || !appUser || !db) {
       toast({
         title: 'Input Required',
         description: 'Please provide a voice query describing the symptoms.',
@@ -133,10 +133,10 @@ export default function DetectorPage() {
     try {
       const response = await voiceQueryPlantDiseaseDetection({
         voiceQuery,
-        language: (user as AppUser).language,
+        language: appUser.language || 'en',
       });
       setResult(response);
-      await addDoc(collection(db, 'users', user.uid, 'diseaseRecords'), {
+      await addDoc(collection(db, 'users', appUser.uid, 'diseaseRecords'), {
         plantName: response.plantName,
         disease: response.diseaseName,
         treatment: response.treatment,
