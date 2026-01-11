@@ -13,13 +13,15 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
-export default function LoginPage() {
-  const { user, loading, signInWithEmail } = useAuth();
+export default function SignUpPage() {
+  const { user, loading, signUpWithEmail } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -27,26 +29,28 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
   
-  const loginImage = PlaceHolderImages.find(p => p.id === '6');
+  const signupImage = PlaceHolderImages.find(p => p.id === '7');
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSigningIn(true);
+    setIsSigningUp(true);
     try {
-      await signInWithEmail(email, password);
+      await signUpWithEmail(email, password, name);
       // Redirect is handled by the AuthProvider
     } catch (error: any) {
       console.error(error);
-      let description = "An unexpected error occurred. Please try again.";
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        description = "Invalid email or password. Please try again.";
+       let description = "An unexpected error occurred. Please try again.";
+      if (error.code === 'auth/email-already-in-use') {
+        description = "This email is already in use. Please log in or use a different email.";
+      } else if (error.code === 'auth/weak-password') {
+        description = "The password is too weak. It should be at least 6 characters.";
       }
       toast({
-        title: 'Sign In Failed',
+        title: 'Sign Up Failed',
         description,
         variant: 'destructive',
       });
-      setIsSigningIn(false);
+      setIsSigningUp(false);
     }
   };
 
@@ -65,14 +69,24 @@ export default function LoginPage() {
           <CardHeader className="text-center space-y-2">
             <div className="flex justify-center items-center gap-2">
               <Leaf className="h-8 w-8 text-primary"/>
-              <CardTitle className="text-3xl font-bold font-headline">AgroVision AI</CardTitle>
+              <CardTitle className="text-3xl font-bold font-headline">Create an Account</CardTitle>
             </div>
             <CardDescription>
-              Sign in to access your dashboard.
+              Enter your details below to create your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSignIn} className="grid gap-4">
+            <form onSubmit={handleSignUp} className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="full-name">Full Name</Label>
+                <Input 
+                  id="full-name" 
+                  placeholder="John Doe" 
+                  required 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -94,25 +108,25 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isSigningIn}>
-                {isSigningIn ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Login'}
+              <Button type="submit" className="w-full" disabled={isSigningUp}>
+                {isSigningUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Create account'}
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="underline">
-                Sign up
+              Already have an account?{' '}
+              <Link href="/login" className="underline">
+                Sign in
               </Link>
             </div>
           </CardContent>
         </Card>
       </div>
       <div className="hidden bg-muted lg:block">
-        {loginImage && (
+        {signupImage && (
           <Image
-            src={loginImage.imageUrl}
-            alt={loginImage.description}
-            data-ai-hint={loginImage.imageHint}
+            src={signupImage.imageUrl}
+            alt={signupImage.description}
+            data-ai-hint={signupImage.imageHint}
             width="1920"
             height="1080"
             className="h-full w-full object-cover dark:brightness-[0.3]"

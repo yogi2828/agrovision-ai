@@ -8,9 +8,10 @@ import React, {
   type ReactNode,
 } from 'react';
 import {
-  GoogleAuthProvider,
-  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -24,13 +25,14 @@ import Footer from '@/components/layout/footer';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const publicRoutes = ['/', '/about', '/login'];
+const publicRoutes = ['/', '/about', '/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: firebaseUser, isUserLoading } = useUser();
@@ -59,7 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             voiceSpeed: customData.voiceSpeed ?? 1,
           } as User);
         } else {
-          const newUser: Omit<User, keyof FirebaseUser> = {
+          // This case might happen if Firestore doc creation fails after auth creation
+           const newUser: Omit<User, keyof FirebaseUser> = {
             language: 'en',
             voiceEnabled: true,
             voiceSpeed: 1,
@@ -90,15 +93,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [firebaseUser, isUserLoading, pathname, router, db]);
 
-  const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    setLoading(true);
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error('Error during Google Sign-In: ', error);
-      setLoading(false);
-    }
+  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const { user: newUser } = userCredential;
+    
+    // Update Firebase Auth profile
+    await updateProfile(newUser, { displayName });
+
+    // Create user document in Firestore
+    const userRef = doc(db, 'users', newUser.uid);
+    await setDoc(userRef, {
+      id: newUser.uid,
+      name: displayName,
+      email: newUser.email,
+      language: 'en',
+      voiceEnabled: true,
+      voiceSpeed: 1,
+    });
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signOut = async () => {
@@ -110,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const value = { user, loading, signInWithGoogle, signOut };
+  const value = { user, loading, signUpWithEmail, signInWithEmail, signOut };
 
   const showLoader = loading && !publicRoutes.includes(pathname);
   const showRedirectLoader = !user && !publicRoutes.includes(pathname);
