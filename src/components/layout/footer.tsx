@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center gap-2 mb-4 md:mb-0">
             <Leaf className="h-6 w-6 text-primary" />
-            <span className="font-bold font-headline text-lg">AgroVision AI</span>
+            <span className="font-bold text-lg">AgroVision AI</span>
           </div>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <Link href="/about" className="hover:text-primary">

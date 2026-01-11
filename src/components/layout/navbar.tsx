@@ -28,15 +28,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
-  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supportedLanguages } from '@/lib/languages';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useState } from 'react';
 
 const navLinks = [
   { href: '/dashboard', label: 'Home', icon: <Home className="h-4 w-4" /> },
@@ -53,18 +50,29 @@ const navLinks = [
 export default function Navbar() {
   const { user, signInWithGoogle, signOut } = useAuth();
   const { setTheme } = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLanguageChange = async (langCode: string) => {
     if (user) {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { language: langCode });
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, { language: langCode });
+      } catch (error) {
+        console.error('Error updating language:', error);
+      }
     }
   };
 
   const NavContent = () => (
     <>
       {navLinks.map((link) => (
-        <Button key={link.href} variant="ghost" asChild className="justify-start">
+        <Button
+          key={link.href}
+          variant="ghost"
+          asChild
+          className="justify-start"
+          onClick={() => setMobileMenuOpen(false)}
+        >
           <Link href={link.href} className="flex items-center gap-2">
             {link.icon} {link.label}
           </Link>
@@ -79,53 +87,66 @@ export default function Navbar() {
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="flex items-center gap-2 font-bold">
             <Leaf className="h-6 w-6 text-primary" />
-            <span className="font-headline text-lg">AgroVision AI</span>
+            <span className="text-lg">AgroVision AI</span>
           </Link>
         </div>
-        <div className="md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[280px]">
-              <div className="flex flex-col gap-4 py-6">
-                <Link href="/" className="flex items-center gap-2 font-bold px-4">
-                  <Leaf className="h-6 w-6 text-primary" />
-                  <span className="font-headline text-lg">AgroVision AI</span>
-                </Link>
-                <div className="flex flex-col gap-1 px-2">
-                  <NavContent />
-                </div>
+
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" className="md:hidden">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[280px]">
+            <div className="flex flex-col gap-4 py-6">
+              <Link
+                href="/"
+                className="flex items-center gap-2 font-bold px-4"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Leaf className="h-6 w-6 text-primary" />
+                <span className="text-lg">AgroVision AI</span>
+              </Link>
+              <div className="flex flex-col gap-1 px-2">
+                <NavContent />
               </div>
-            </SheetContent>
-          </Sheet>
+            </div>
+          </SheetContent>
+        </Sheet>
+        <div className="md:hidden flex-1 flex justify-center">
+           <Link href="/" className="flex items-center gap-2 font-bold">
+            <Leaf className="h-6 w-6 text-primary" />
+          </Link>
         </div>
-        <nav className="hidden md:flex items-center space-x-2 lg:space-x-4 ml-6 text-sm font-medium">
-          <NavContent />
+
+
+        <nav className="hidden md:flex items-center space-x-1 ml-6 text-sm font-medium">
+          {user && <NavContent />}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Languages className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Select Language</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {supportedLanguages.map((lang) => (
-                <DropdownMenuItem
-                  key={lang.code}
-                  onSelect={() => handleLanguageChange(lang.code)}
-                >
-                  {lang.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Languages className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Select Language</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {supportedLanguages.map((lang) => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onSelect={() => handleLanguageChange(lang.code)}
+                    disabled={user.language === lang.code}
+                  >
+                    {lang.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -150,8 +171,8 @@ export default function Navbar() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <CircleUser className="h-8 w-8" />
+                 <Button variant="secondary" size="icon" className="rounded-full">
+                  <CircleUser className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
