@@ -11,6 +11,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const TreatmentSchema = z.object({
+  productName: z.string().describe('The specific brand or chemical name of the product.'),
+  instructions: z.string().describe('Detailed instructions on how to apply the treatment.'),
+  link: z.string().url().describe('An example URL where the product can be purchased.'),
+});
+
 const ImageBasedPlantDiseaseDetectionInputSchema = z.object({
   photoDataUri: z
     .string()
@@ -27,7 +33,8 @@ const ImageBasedPlantDiseaseDetectionOutputSchema = z.object({
   diseaseName: z.string().describe('The name of the disease. If the plant is healthy, state "Healthy".'),
   symptoms: z.string().describe('A paragraph describing the symptoms of the disease.'),
   causes: z.string().describe('A paragraph describing the potential causes of the disease.'),
-  treatment: z.string().describe('A detailed paragraph explaining treatment options.'),
+  organicTreatments: z.array(TreatmentSchema).describe('A list of organic treatment options.'),
+  chemicalTreatments: z.array(TreatmentSchema).describe('A list of chemical treatment options.'),
   prevention: z.string().describe('A paragraph with tips to prevent the disease in the future.'),
 });
 export type ImageBasedPlantDiseaseDetectionOutput = z.infer<typeof ImageBasedPlantDiseaseDetectionOutputSchema>;
@@ -40,27 +47,32 @@ const prompt = ai.definePrompt({
   name: 'imageBasedPlantDiseaseDetectionPrompt',
   input: {schema: ImageBasedPlantDiseaseDetectionInputSchema},
   output: {schema: ImageBasedPlantDiseaseDetectionOutputSchema},
-  model: 'googleai/gemini-2.5-flash',
-  prompt: `You are an expert plant pathologist. Analyze the plant disease from the provided information.
-Your entire response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}. Do not use any other language.
+  model: 'googleai/gemini-1.5-flash-latest',
+  prompt: `You are an expert plant pathologist. Your analysis and response must be comprehensive and actionable for a farmer or gardener.
+Your entire response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}. Do not use any other language under any circumstances.
 
 {{#if photoDataUri}}
-Image: {{media url=photoDataUri}}
+Analyze this image: {{media url=photoDataUri}}
 {{/if}}
 {{#if question}}
-Question: "{{{question}}}"
+Consider this question: "{{{question}}}"
 {{/if}}
 
-Your task is to analyze the image and/or question and provide a comprehensive diagnosis.
-If the plant is healthy, set the diseaseName to "Healthy" (translated to the user's language) and provide general care tips in the other fields.
+Your task is to analyze the image and/or question and provide a detailed diagnosis.
 
-If a disease is detected, provide the following information:
-- Plant Name: The name of the plant in the image.
-- Disease Name: The specific name of the disease.
-- Symptoms: A paragraph detailing the visible symptoms.
-- Causes: A paragraph explaining the likely causes.
-- Treatment: A detailed paragraph explaining treatment options.
-- Prevention: A paragraph with actionable tips to prevent this disease in the future.
+If the plant is healthy:
+- Set the diseaseName to "Healthy" (translated to the user's language).
+- Provide general care tips suitable for the identified plant in the 'prevention' and 'symptoms' fields.
+- Provide empty arrays for organic and chemical treatments.
+
+If a disease is detected, you MUST provide the following:
+- plantName: The name of the plant.
+- diseaseName: The specific name of the disease.
+- symptoms: A paragraph detailing the visible symptoms.
+- causes: A paragraph explaining the likely causes.
+- organicTreatments: An array of at least one organic treatment option. For each, provide a product name, detailed application instructions, and a valid, example shopping link.
+- chemicalTreatments: An array of at least one chemical treatment option. For each, provide a product name, detailed application instructions, and a valid, example shopping link.
+- prevention: A paragraph with actionable tips to prevent this disease in the future.
 
 Respond with the extracted information in the structured JSON format. Ensure all text in your response is in {{{language}}}.`,
 });
