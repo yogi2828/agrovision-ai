@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,7 @@ import {
   type VoiceQueryPlantDiseaseDetectionOutput,
 } from '@/ai/flows/voice-query-plant-disease-detection';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import { Progress } from '@/components/ui/progress';
 import {
   Tooltip,
@@ -42,8 +41,8 @@ import {
 } from '@/components/ui/tooltip';
 
 export default function DetectorPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -72,7 +71,8 @@ export default function DetectorPage() {
   };
 
   const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window)) {
+     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
       toast({
         title: 'Unsupported Browser',
         description: 'Your browser does not support voice recognition.',
@@ -86,7 +86,7 @@ export default function DetectorPage() {
       return;
     }
 
-    const recognition = new window.webkitSpeechRecognition();
+    const recognition = new SpeechRecognition();
     recognition.lang = user?.language || 'en-US';
     recognition.continuous = false;
     recognition.interimResults = true;
@@ -134,9 +134,11 @@ export default function DetectorPage() {
         language: user.language,
       });
       setResult(response);
-      await addDoc(collection(db, 'users', user.uid, 'diseaseHistory'), {
+      await addDoc(collection(db, 'users', user.uid, 'diseaseRecords'), {
         ...response,
+        plantName: response.plantName,
         disease: response.diseaseName,
+        treatment: response.treatment,
         timestamp: serverTimestamp(),
       });
       toast({

@@ -32,7 +32,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supportedLanguages } from '@/lib/languages';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import { useState } from 'react';
 
 const navLinks = [
@@ -49,11 +49,12 @@ const navLinks = [
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
+  const db = useFirestore();
   const { setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLanguageChange = async (langCode: string) => {
-    if (user) {
+    if (user && db) {
       try {
         const userRef = doc(db, 'users', user.uid);
         await updateDoc(userRef, { language: langCode });

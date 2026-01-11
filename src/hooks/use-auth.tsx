@@ -14,7 +14,7 @@ import {
   updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useUser, useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setLoading(isUserLoading);
-    if (isUserLoading) {
+    if (isUserLoading || !db) {
       return;
     }
 
@@ -106,9 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: newUser.uid,
       name: displayName,
       email: newUser.email,
-      language: 'en',
+      preferredLanguage: 'en',
       voiceEnabled: true,
-      voiceSpeed: 1,
     });
   };
 

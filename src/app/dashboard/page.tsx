@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,8 +18,9 @@ import {
   orderBy,
   limit,
   getDocs,
+  Timestamp,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import { formatDistanceToNow } from 'date-fns';
 
 type ActivityItem = {
@@ -31,8 +31,8 @@ type ActivityItem = {
 };
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
+  const db = useFirestore();
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
   const [greeting, setGreeting] = useState('');
@@ -45,17 +45,17 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && db) {
       const fetchRecentActivity = async () => {
         setActivityLoading(true);
         try {
           const detectionQuery = query(
-            collection(db, 'users', user.uid, 'diseaseHistory'),
+            collection(db, 'users', user.uid, 'diseaseRecords'),
             orderBy('timestamp', 'desc'),
             limit(2)
           );
           const chatQuery = query(
-            collection(db, 'users', user.uid, 'chatHistory'),
+            collection(db, 'users', user.uid, 'chatRecords'),
             orderBy('timestamp', 'desc'),
             limit(2)
           );
@@ -73,7 +73,7 @@ export default function DashboardPage() {
               id: doc.id,
               type: 'detection',
               content: `Detected ${data.disease} on ${data.plantName}`,
-              timestamp: data.timestamp.toDate(),
+              timestamp: (data.timestamp as Timestamp).toDate(),
             });
           });
 
@@ -83,7 +83,7 @@ export default function DashboardPage() {
               id: doc.id,
               type: 'chat',
               content: `Chat: "${data.userMessage.substring(0, 30)}..."`,
-              timestamp: data.timestamp.toDate(),
+              timestamp: (data.timestamp as Timestamp).toDate(),
             });
           });
 
@@ -97,10 +97,12 @@ export default function DashboardPage() {
       };
 
       fetchRecentActivity();
+    } else if (!user) {
+      setActivityLoading(false);
     }
-  }, [user]);
+  }, [user, db]);
 
-  if (authLoading || !user) {
+  if (!user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -117,9 +119,11 @@ export default function DashboardPage() {
         <p className="text-lg text-muted-foreground">
           Welcome back to your AgroVision dashboard. Ready to check on your plants?
         </p>
-        <p className="text-sm text-muted-foreground">
-          Current language: <span className="font-semibold text-primary">{user.language.toUpperCase()}</span>
-        </p>
+        {user.language && (
+            <p className="text-sm text-muted-foreground">
+            Current language: <span className="font-semibold text-primary">{user.language.toUpperCase()}</span>
+            </p>
+        )}
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">

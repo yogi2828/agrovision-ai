@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,7 +27,7 @@ import { cn } from '@/lib/utils';
 import { expandFAQ } from '@/ai/flows/dynamic-faq-expansion';
 import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatbot-responses';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 type Message = {
@@ -45,8 +44,8 @@ const predefinedQuestions = [
 ];
 
 export default function ChatbotPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -60,7 +59,7 @@ export default function ChatbotPage() {
   const saveToHistory = async (userMessage: string, aiResponse: string) => {
     if (!user) return;
     try {
-      await addDoc(collection(db, 'users', user.uid, 'chatHistory'), {
+      await addDoc(collection(db, 'users', user.uid, 'chatRecords'), {
         userMessage,
         aiResponse,
         language: user.language,
@@ -85,28 +84,26 @@ export default function ChatbotPage() {
 
     try {
       let response;
+      let aiResponseMessage: string;
       if (predefinedQuestions.includes(messageContent)) {
         response = await expandFAQ({ question: messageContent });
-        const aiResponse: Message = {
-          role: 'assistant',
-          content: response.expandedAnswer,
-        };
-        setMessages((prev) => [...prev, aiResponse]);
-        speak(response.expandedAnswer);
-        await saveToHistory(messageContent, response.expandedAnswer);
+        aiResponseMessage = response.expandedAnswer;
       } else {
         response = await multilingualAIChatbotResponses({
           userMessage: messageContent,
           language: user.language,
         });
-        const aiResponse: Message = {
-          role: 'assistant',
-          content: response.aiResponse,
-        };
-        setMessages((prev) => [...prev, aiResponse]);
-        speak(response.aiResponse);
-        await saveToHistory(messageContent, response.aiResponse);
+        aiResponseMessage = response.aiResponse;
       }
+      
+      const aiMessage: Message = {
+        role: 'assistant',
+        content: aiResponseMessage,
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+      speak(aiResponseMessage);
+      await saveToHistory(messageContent, aiResponseMessage);
+
     } catch (error) {
       console.error('AI response error:', error);
       const errorMessage =
@@ -133,7 +130,12 @@ export default function ChatbotPage() {
     }
     
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = user.language;
+    if(user.language) {
+      utterance.lang = user.language;
+    }
+    if(user.voiceSpeed) {
+      utterance.rate = user.voiceSpeed;
+    }
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
@@ -149,8 +151,13 @@ export default function ChatbotPage() {
   };
 
   const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window)) {
-      alert('Your browser does not support voice recognition.');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({
+        title: 'Unsupported Browser',
+        description:'Your browser does not support voice recognition.',
+        variant: 'destructive'
+      });
       return;
     }
 
@@ -160,7 +167,7 @@ export default function ChatbotPage() {
       return;
     }
 
-    const recognition = new window.webkitSpeechRecognition();
+    const recognition = new SpeechRecognition();
     recognition.lang = user?.language || 'en-US';
     recognition.continuous = false;
     recognition.interimResults = false;
@@ -190,12 +197,14 @@ export default function ChatbotPage() {
             <Bot className="h-7 w-7 text-primary" />
             AI Chatbot
           </CardTitle>
-          {isSpeaking ? (
-            <Button variant="ghost" size="icon" onClick={stopSpeaking}>
-              <VolumeX className="h-6 w-6 text-red-500" />
-            </Button>
-          ) : (
-            <Volume2 className="h-6 w-6 text-muted-foreground" />
+          {user?.voiceEnabled && (
+            isSpeaking ? (
+              <Button variant="ghost" size="icon" onClick={stopSpeaking}>
+                <VolumeX className="h-6 w-6 text-red-500" />
+              </Button>
+            ) : (
+              <Volume2 className="h-6 w-6 text-muted-foreground" />
+            )
           )}
         </CardHeader>
         <CardContent className="flex-1 flex flex-col gap-4 overflow-hidden">
@@ -258,6 +267,7 @@ export default function ChatbotPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleSend(q)}
+                disabled={isLoading}
               >
                 {q}
               </Button>

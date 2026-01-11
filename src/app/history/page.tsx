@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import {
   Tabs,
@@ -36,7 +35,7 @@ import {
   getDocs,
   type Timestamp,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import { format } from 'date-fns';
 
 type DetectionHistory = {
@@ -56,56 +55,52 @@ type ChatHistory = {
 };
 
 export default function HistoryPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
+  const db = useFirestore();
   const [detections, setDetections] = useState<DetectionHistory[]>([]);
   const [chats, setChats] = useState<ChatHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/');
-    } else if (user) {
-      fetchHistory();
-    }
-  }, [user, authLoading, router]);
+    const fetchHistory = async () => {
+      if (!user || !db) return;
+      setIsLoading(true);
+      try {
+        const detectionQuery = query(
+          collection(db, 'users', user.uid, 'diseaseRecords'),
+          orderBy('timestamp', 'desc')
+        );
+        const chatQuery = query(
+          collection(db, 'users', user.uid, 'chatRecords'),
+          orderBy('timestamp', 'desc')
+        );
 
-  const fetchHistory = async () => {
-    if (!user) return;
-    setIsLoading(true);
-    try {
-      const detectionQuery = query(
-        collection(db, 'users', user.uid, 'diseaseHistory'),
-        orderBy('timestamp', 'desc')
-      );
-      const chatQuery = query(
-        collection(db, 'users', user.uid, 'chatHistory'),
-        orderBy('timestamp', 'desc')
-      );
+        const [detectionSnapshot, chatSnapshot] = await Promise.all([
+          getDocs(detectionQuery),
+          getDocs(chatQuery),
+        ]);
 
-      const [detectionSnapshot, chatSnapshot] = await Promise.all([
-        getDocs(detectionQuery),
-        getDocs(chatQuery),
-      ]);
+        setDetections(
+          detectionSnapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() } as DetectionHistory)
+          )
+        );
+        setChats(
+          chatSnapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() } as ChatHistory)
+          )
+        );
+      } catch (error) {
+        console.error('Failed to fetch history:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchHistory();
+  }, [user, db]);
 
-      setDetections(
-        detectionSnapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as DetectionHistory)
-        )
-      );
-      setChats(
-        chatSnapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as ChatHistory)
-        )
-      );
-    } catch (error) {
-      console.error('Failed to fetch history:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (authLoading || !user) {
+  if (!user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -150,7 +145,9 @@ export default function HistoryPage() {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+                </div>
               ) : detections.length === 0 ? (
                 renderEmptyState('detection')
               ) : (
@@ -190,11 +187,13 @@ export default function HistoryPage() {
               <CardTitle>Chat History</CardTitle>
               <CardDescription>
                 A log of all your conversations with the AI assistant.
-              </D_escription>
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+                </div>
               ) : chats.length === 0 ? (
                 renderEmptyState('chat')
               ) : (

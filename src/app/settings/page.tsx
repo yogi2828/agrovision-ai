@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,7 @@ import {
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import { supportedLanguages } from '@/lib/languages';
 import { useTheme } from 'next-themes';
 
@@ -37,9 +36,9 @@ type SettingsFormValues = {
 };
 
 export default function SettingsPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const db = useFirestore();
   const { theme, setTheme } = useTheme();
-  const router = useRouter();
   const { toast } = useToast();
   
   const {
@@ -89,7 +88,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (authLoading || !user) {
+  if (!user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
