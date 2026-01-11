@@ -62,6 +62,22 @@
           "type": "string",
           "description": "Recommended treatment for the disease."
         },
+        "symptoms": {
+            "type": "string",
+            "description": "Symptoms of the disease."
+        },
+        "causes": {
+            "type": "string",
+            "description": "Causes of the disease."
+        },
+        "preventionTips": {
+            "type": "string",
+            "description": "Tips for preventing the disease."
+        },
+        "confidenceLevel": {
+            "type": "number",
+            "description": "Confidence level of the diagnosis."
+        },
         "timestamp": {
           "type": "string",
           "description": "Timestamp of when the disease was detected.",
