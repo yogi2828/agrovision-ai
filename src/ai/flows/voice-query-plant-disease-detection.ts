@@ -19,7 +19,7 @@ export type VoiceQueryPlantDiseaseDetectionInput = z.infer<typeof VoiceQueryPlan
 const VoiceQueryPlantDiseaseDetectionOutputSchema = z.object({
   plantName: z.string().describe('The name of the plant.'),
   diseaseName: z.string().describe('The name of the disease.'),
-  confidenceLevel: z.number().describe('The confidence level of the disease detection.'),
+  confidenceLevel: z.number().describe('The confidence level of the disease detection (0-1).'),
   symptoms: z.string().describe('The symptoms of the disease.'),
   causes: z.string().describe('The causes of the disease.'),
   treatment: z.string().describe('The treatment for the disease.'),
