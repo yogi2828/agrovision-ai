@@ -39,6 +39,7 @@ const prompt = ai.definePrompt({
   name: 'imageBasedPlantDiseaseDetectionPrompt',
   input: {schema: ImageBasedPlantDiseaseDetectionInputSchema},
   output: {schema: ImageBasedPlantDiseaseDetectionOutputSchema},
+  model: 'gemini-pro-vision',
   prompt: `You are an expert in plant diseases. A user will provide an image of a plant. Analyze the image and respond in {{{language}}}.
 
 Image: {{media url=photoDataUri}}
