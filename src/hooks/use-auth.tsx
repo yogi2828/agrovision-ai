@@ -82,11 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [firebaseUser, isUserLoading, pathname, router, db]);
 
   const value = { user, loading };
-
-  const showLoader = loading && !publicRoutes.includes(pathname);
-  const showRedirectLoader = !user && !publicRoutes.includes(pathname);
   
-  if (showLoader || showRedirectLoader) {
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -94,16 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  // Determine if the navbar should be shown.
-  // Don't show it on login/signup pages.
-  const showNav = !loading && !['/login', '/signup'].includes(pathname);
 
   return (
     <AuthContext.Provider value={value}>
-      {showNav && <Navbar />}
-      <div className="relative flex min-h-screen flex-col">
-        <main className="flex-1">{children}</main>
-      </div>
+      {children}
     </AuthContext.Provider>
   );
 }
