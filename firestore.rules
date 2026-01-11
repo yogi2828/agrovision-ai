@@ -1,123 +1,27 @@
-/**
- * Core Philosophy: This ruleset enforces a strict user-ownership model. All data is considered private and is only accessible by the user who created it. There is no concept of public or shared data in this model.
- *
- * Data Structure: The entire data model is hierarchical and user-centric. All application data, including user profiles, disease records, and chat history, is nested within a top-level `users` collection under a document corresponding to the user's unique ID (`/users/{userId}/...`). This structure inherently isolates each user's data.
- *
- * Key Security Decisions:
- * - User Isolation: A user can only ever read or write data within their own document tree (`/users/{their_own_userId}`).
- * - No User Enumeration: The rules explicitly disallow listing the top-level `/users` collection, preventing any user from discovering the existence of other users.
- * - Self-Creation: A user is permitted to create their own user profile document in the `/users` collection, but no one else's.
- * - Path-Based Security: Authorization is derived directly from the document path, making the rules simple, fast, and highly secure without needing extra database reads (`get` calls).
- * - Relational Integrity: On creation, rules ensure that documents contain an internal `userId` or `id` field that correctly matches the `userId` in the path, creating a verifiable link back to the owner. This ownership link is enforced as immutable on updates.
- */
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ----------------------------------------------------------------------
-    // Helper Functions
-    // ----------------------------------------------------------------------
-
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the requesting user's UID matches the document's owner ID from the path.
-     * This is the primary function for enforcing the user-ownership model.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Validates ownership for an existing document. Used for update and delete operations.
-     * Ensures the document exists before allowing a state-changing operation.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * Ensures the `id` field within a User document matches the document's path ID.
-     * This validates the relational link to the auth UID upon creation.
-     */
-    function hasValidUserLink(userId) {
-      return request.resource.data.id == userId;
-    }
-
-    /**
-     * Ensures the `userId` field within a subcollection document matches its parent's path ID.
-     * This validates the relational link to the owner upon creation.
-     */
-    function hasValidOwnerLink(userId) {
-      return request.resource.data.userId == userId;
-    }
-    
-    /**
-     * Ensures a specific field cannot be changed after the document is created.
-     * Used to protect immutable ownership links and IDs.
-     */
-    function isImmutable(field) {
-      return request.resource.data[field] == resource.data[field];
-    }
-
-    // ----------------------------------------------------------------------
-    // Collection Rules
-    // ----------------------------------------------------------------------
-
-    /**
-     * @description Manages user profile documents.
-     * @path /users/{userId}
-     * @allow (get) A user (auth.uid='user_abc') reads their own profile at `/users/user_abc`.
-     * @allow (create) A new user (auth.uid='user_abc') creates their profile at `/users/user_abc`.
-     * @deny (list) A user attempts to list all documents in the `/users` collection.
-     * @deny (get) A user (auth.uid='user_abc') tries to read another profile at `/users/user_xyz`.
-     * @principle Restricts access to a user's own data tree and allows profile self-creation.
-     */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // Disallow user enumeration for security
-      allow create: if isOwner(userId) && hasValidUserLink(userId);
-      allow update: if isExistingOwner(userId) && isImmutable('id');
-      allow delete: if isExistingOwner(userId);
-    }
+      allow read, write: if isOwner(userId);
 
-    /**
-     * @description Manages disease detection records, private to each user.
-     * @path /users/{userId}/diseaseRecords/{diseaseRecordId}
-     * @allow (create) A user (auth.uid='user_abc') creates a new disease record in their own subcollection.
-     * @allow (list) A user (auth.uid='user_abc') lists all of their own disease records.
-     * @deny (get) A user (auth.uid='user_abc') tries to read a record from another user's subcollection.
-     * @deny (update) A user tries to change the `userId` field on an existing record.
-     * @principle Enforces document ownership via path and validates relational integrity on writes.
-     */
-    match /users/{userId}/diseaseRecords/{diseaseRecordId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && hasValidOwnerLink(userId);
-      allow update: if isExistingOwner(userId) && isImmutable('userId');
-      allow delete: if isExistingOwner(userId);
-    }
+      match /diseaseRecords/{recordId} {
+        allow read, write: if isOwner(userId);
+      }
 
-    /**
-     * @description Manages chat conversation records, private to each user.
-     * @path /users/{userId}/chatRecords/{chatRecordId}
-     * @allow (create) A user (auth.uid='user_abc') creates a new chat record in their own subcollection.
-     * @allow (list) A user (auth.uid='user_abc') lists all of their own chat records.
-     * @deny (get) A user (auth.uid='user_abc') tries to read a chat from another user's subcollection.
-     * @deny (update) A user tries to change the `userId` field on an existing chat record.
-     * @principle Enforces document ownership via path and validates relational integrity on writes.
-     */
-    match /users/{userId}/chatRecords/{chatRecordId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && hasValidOwnerLink(userId);
-      allow update: if isExistingOwner(userId) && isImmutable('userId');
-      allow delete: if isExistingOwner(userId);
+      match /chatRecords/{recordId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }
