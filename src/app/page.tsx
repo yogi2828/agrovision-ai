@@ -2,7 +2,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -13,11 +12,13 @@ import {
   Languages,
   Mic,
   Zap,
-  Leaf,
   ArrowRight
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Navbar from '@/components/layout/navbar';
+import Footer from '@/components/layout/footer';
+
 
 const features = [
   {
@@ -81,6 +82,7 @@ export default function Home() {
   
   return (
     <div className="flex flex-col min-h-[100dvh]">
+      <Navbar />
       <main className="flex-1">
         {/* Hero Section */}
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
@@ -107,8 +109,8 @@ export default function Home() {
               {heroImage && (
               <Image
                 src={heroImage.imageUrl}
-                width="550"
-                height="550"
+                width={600}
+                height={600}
                 alt={heroImage.description}
                 data-ai-hint={heroImage.imageHint}
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
@@ -193,8 +195,8 @@ export default function Home() {
             </div>
             <div className="mx-auto grid max-w-5xl items-start gap-8 py-12 sm:grid-cols-2 md:gap-12 lg:grid-cols-3">
               {howItWorks.map((item) => (
-                <div key={item.step} className="grid gap-4">
-                  <div className="flex items-center justify-center w-16 h-16 bg-primary text-primary-foreground rounded-full text-2xl font-bold">
+                <div key={item.step} className="grid gap-4 text-center md:text-left items-center md:items-start justify-center md:justify-start">
+                  <div className="flex items-center justify-center w-16 h-16 bg-primary text-primary-foreground rounded-full text-2xl font-bold mx-auto md:mx-0">
                     {item.step}
                   </div>
                   <div className="grid gap-1">
@@ -242,6 +244,7 @@ export default function Home() {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -46,22 +46,23 @@ export default function SettingsPage() {
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { isSubmitting, isDirty },
   } = useForm<SettingsFormValues>();
+  
+  const voiceEnabled = watch('voiceEnabled');
+
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/');
-    }
     if (user) {
       reset({
-        language: user.language,
-        voiceEnabled: user.voiceEnabled,
-        voiceSpeed: user.voiceSpeed,
+        language: user.language || 'en',
+        voiceEnabled: user.voiceEnabled ?? true,
+        voiceSpeed: user.voiceSpeed ?? 1,
         theme: theme || 'system',
       });
     }
-  }, [user, authLoading, router, reset, theme]);
+  }, [user, theme, reset]);
 
   const onSubmit = async (data: SettingsFormValues) => {
     if (!user) return;
@@ -77,6 +78,7 @@ export default function SettingsPage() {
         title: 'Settings Saved',
         description: 'Your preferences have been updated successfully.',
       });
+       reset(data); // Resets the form state to the newly saved data
     } catch (error) {
       console.error('Error updating settings:', error);
       toast({
@@ -114,7 +116,7 @@ export default function SettingsPage() {
                 render={({ field }) => (
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a language" />
@@ -139,7 +141,7 @@ export default function SettingsPage() {
                 render={({ field }) => (
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a theme" />
@@ -173,27 +175,29 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="space-y-3">
-              <Label>Voice Speed</Label>
-              <Controller
-                name="voiceSpeed"
-                control={control}
-                render={({ field }) => (
-                  <>
-                  <Slider
-                    defaultValue={[field.value]}
-                    min={0.5}
-                    max={2}
-                    step={0.1}
-                    onValueChange={(value) => field.onChange(value[0])}
+             {voiceEnabled && (
+                <div className="space-y-3">
+                  <Label>Voice Speed</Label>
+                  <Controller
+                    name="voiceSpeed"
+                    control={control}
+                    render={({ field }) => (
+                      <>
+                      <Slider
+                        value={[field.value]}
+                        min={0.5}
+                        max={2}
+                        step={0.1}
+                        onValueChange={(value) => field.onChange(value[0])}
+                      />
+                      <div className="text-xs text-muted-foreground text-center">
+                        Speed: {field.value.toFixed(1)}x
+                      </div>
+                      </>
+                    )}
                   />
-                  <div className="text-xs text-muted-foreground text-center">
-                    Speed: {field.value.toFixed(1)}x
-                  </div>
-                  </>
-                )}
-              />
-            </div>
+                </div>
+              )}
 
             <Button
               type="submit"

@@ -38,12 +38,6 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/');
-    }
-  }, [user, authLoading, router]);
-  
-  useEffect(() => {
     const hours = new Date().getHours();
     if (hours < 12) setGreeting('Good Morning');
     else if (hours < 18) setGreeting('Good Afternoon');
@@ -56,12 +50,12 @@ export default function DashboardPage() {
         setActivityLoading(true);
         try {
           const detectionQuery = query(
-            collection(db, `diseaseHistory/${user.uid}/records`),
+            collection(db, 'users', user.uid, 'diseaseHistory'),
             orderBy('timestamp', 'desc'),
             limit(2)
           );
           const chatQuery = query(
-            collection(db, `chatHistory/${user.uid}/messages`),
+            collection(db, 'users', user.uid, 'chatHistory'),
             orderBy('timestamp', 'desc'),
             limit(2)
           );
@@ -78,7 +72,7 @@ export default function DashboardPage() {
             activities.push({
               id: doc.id,
               type: 'detection',
-              content: `Detected ${data.diseaseName} on ${data.plantName}`,
+              content: `Detected ${data.disease} on ${data.plantName}`,
               timestamp: data.timestamp.toDate(),
             });
           });

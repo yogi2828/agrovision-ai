@@ -48,7 +48,7 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const { user, signInWithGoogle, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -203,8 +203,10 @@ export default function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={signInWithGoogle}>
-              <LogIn className="mr-2 h-4 w-4" /> Login
+             <Button asChild>
+              <Link href="/login">
+                <LogIn className="mr-2 h-4 w-4" /> Login
+              </Link>
             </Button>
           )}
         </div>

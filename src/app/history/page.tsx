@@ -42,11 +42,8 @@ import { format } from 'date-fns';
 type DetectionHistory = {
   id: string;
   plantName: string;
-  diseaseName: string;
-  symptoms: string;
-  causes: string;
+  disease: string;
   treatment: string;
-  preventionTips: string;
   timestamp: Timestamp;
 };
 
@@ -78,11 +75,11 @@ export default function HistoryPage() {
     setIsLoading(true);
     try {
       const detectionQuery = query(
-        collection(db, `diseaseHistory/${user.uid}/records`),
+        collection(db, 'users', user.uid, 'diseaseHistory'),
         orderBy('timestamp', 'desc')
       );
       const chatQuery = query(
-        collection(db, `chatHistory/${user.uid}/messages`),
+        collection(db, 'users', user.uid, 'chatHistory'),
         orderBy('timestamp', 'desc')
       );
 
@@ -163,7 +160,7 @@ export default function HistoryPage() {
                       <AccordionTrigger>
                         <div className="flex justify-between w-full pr-4">
                           <span className="font-semibold">
-                            {item.diseaseName} on {item.plantName}
+                            {item.disease} on {item.plantName}
                           </span>
                           <span className="text-sm text-muted-foreground flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
@@ -176,20 +173,8 @@ export default function HistoryPage() {
                       </AccordionTrigger>
                       <AccordionContent className="space-y-4 px-4">
                         <div>
-                          <h4 className="font-semibold">Symptoms</h4>
-                          <p className="text-muted-foreground">{item.symptoms}</p>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold">Causes</h4>
-                          <p className="text-muted-foreground">{item.causes}</p>
-                        </div>
-                        <div>
                           <h4 className="font-semibold">Treatment</h4>
                           <p className="text-muted-foreground">{item.treatment}</p>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold">Prevention</h4>
-                          <p className="text-muted-foreground">{item.preventionTips}</p>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -205,7 +190,7 @@ export default function HistoryPage() {
               <CardTitle>Chat History</CardTitle>
               <CardDescription>
                 A log of all your conversations with the AI assistant.
-              </CardDescription>
+              </D_escription>
             </CardHeader>
             <CardContent>
               {isLoading ? (

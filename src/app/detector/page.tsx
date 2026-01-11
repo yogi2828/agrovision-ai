@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -26,17 +25,15 @@ import {
   Stethoscope,
   X,
   FileQuestion,
-  Info
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   voiceQueryPlantDiseaseDetection,
   type VoiceQueryPlantDiseaseDetectionOutput,
 } from '@/ai/flows/voice-query-plant-disease-detection';
-import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -56,12 +53,6 @@ export default function DetectorPage() {
   const [result, setResult] =
     useState<VoiceQueryPlantDiseaseDetectionOutput | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/');
-    }
-  }, [user, authLoading, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,8 +134,9 @@ export default function DetectorPage() {
         language: user.language,
       });
       setResult(response);
-      await addDoc(collection(db, 'diseaseHistory', user.uid, 'records'), {
+      await addDoc(collection(db, 'users', user.uid, 'diseaseHistory'), {
         ...response,
+        disease: response.diseaseName,
         timestamp: serverTimestamp(),
       });
       toast({
@@ -162,14 +154,6 @@ export default function DetectorPage() {
       setIsLoading(false);
     }
   };
-
-  if (authLoading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="container py-8">

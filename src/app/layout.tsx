@@ -39,9 +39,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             <div className="relative flex min-h-screen flex-col">
-              <Navbar />
               <main className="flex-1">{children}</main>
-              <Footer />
             </div>
             <Toaster />
           </AuthProvider>

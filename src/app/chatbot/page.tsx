@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Loader2,
   Mic,
@@ -27,7 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { expandFAQ } from '@/ai/flows/dynamic-faq-expansion';
 import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatbot-responses';
-import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -57,16 +57,10 @@ export default function ChatbotPage() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/');
-    }
-  }, [user, authLoading, router]);
-
   const saveToHistory = async (userMessage: string, aiResponse: string) => {
     if (!user) return;
     try {
-      await addDoc(collection(db, 'chatHistory', user.uid, 'messages'), {
+      await addDoc(collection(db, 'users', user.uid, 'chatHistory'), {
         userMessage,
         aiResponse,
         language: user.language,
@@ -134,14 +128,12 @@ export default function ChatbotPage() {
   const speak = (text: string) => {
     if (!user?.voiceEnabled || !window.speechSynthesis) return;
     
-    // Cancel any ongoing speech
     if (speechSynthesis.speaking) {
       speechSynthesis.cancel();
     }
     
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = user.language;
-    utterance.rate = user.voiceSpeed || 1;
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
@@ -189,13 +181,6 @@ export default function ChatbotPage() {
     recognition.start();
   };
 
-  if (authLoading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="container py-8 flex justify-center">
@@ -301,7 +286,7 @@ export default function ChatbotPage() {
             >
               <Send className="h-4 w-4" />
             </Button>
-            {user.voiceEnabled && (
+            {user?.voiceEnabled && (
               <Button
                 onClick={handleVoiceInput}
                 disabled={isLoading}
