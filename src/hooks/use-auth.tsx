@@ -45,24 +45,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const unsubSnapshot = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const customData = docSnap.data();
-          setUser({
+          const enrichedUser: User = {
             ...firebaseUser,
+            // Provide default values if they are missing from firestore
             language: customData.language || 'en',
             voiceEnabled: customData.voiceEnabled ?? true,
-            voiceSpeed: customData.voiceSpeed ?? 1,
-          } as User);
+            voiceSpeed: custom.voiceSpeed ?? 1,
+          };
+          setUser(enrichedUser);
         } else {
           // This case might happen if Firestore doc creation fails after auth creation
-          setUser({
+           const enrichedUser: User = {
             ...firebaseUser,
             language: 'en',
             voiceEnabled: true,
             voiceSpeed: 1,
-          } as User);
+          };
+          setUser(enrichedUser);
         }
         if (publicRoutes.includes(pathname)) {
           router.push('/dashboard');
         }
+        setLoading(false);
+      }, (error) => {
+        console.error("Error fetching user data:", error);
         setLoading(false);
       });
       return () => unsubSnapshot();

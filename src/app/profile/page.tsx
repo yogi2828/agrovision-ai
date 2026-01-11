@@ -8,15 +8,25 @@ import { Loader2, User, Mail, Languages, Settings } from 'lucide-react';
 import { useAuth, useUser } from '@/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import type { User as AppUser } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const router = useRouter();
   const appUser = user as AppUser | null;
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleSignOut = async () => {
     if (auth) {
       await firebaseSignOut(auth);
+      router.push('/login');
     }
   };
 
@@ -54,7 +64,7 @@ export default function ProfilePage() {
             <Languages className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Preferred Language</p>
-              <p className="font-semibold">{appUser.language.toUpperCase()}</p>
+              <p className="font-semibold">{appUser.language ? appUser.language.toUpperCase() : 'Not Set'}</p>
             </div>
           </div>
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
