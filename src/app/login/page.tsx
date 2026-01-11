@@ -73,8 +73,8 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              <Button variant="outline" className="w-full" onClick={signInWithGoogle}>
-                <GoogleIcon className="mr-2 h-5 w-5" />
+              <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
                 Sign in with Google
               </Button>
             </div>

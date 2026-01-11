@@ -8,17 +8,18 @@ import React, {
   type ReactNode,
 } from 'react';
 import {
-  onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
   signOut as firebaseSignOut,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { useUser, useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import Navbar from '@/components/layout/navbar';
+import Footer from '@/components/layout/footer';
 
 interface AuthContextType {
   user: User | null;
@@ -32,59 +33,62 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const publicRoutes = ['/', '/about', '/login'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { user: firebaseUser, isUserLoading } = useUser();
+  const auth = useFirebaseAuth();
+  const db = useFirestore();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        
-        const unsubSnapshot = onSnapshot(userRef, async (docSnap) => {
-          if (docSnap.exists()) {
-            const customData = docSnap.data();
-            setUser({
-              ...firebaseUser,
-              language: customData.language || 'en',
-              voiceEnabled: customData.voiceEnabled ?? true,
-              voiceSpeed: customData.voiceSpeed ?? 1,
-            } as User);
-          } else {
-            const newUser: Omit<User, keyof FirebaseUser> = {
-              language: 'en',
-              voiceEnabled: true,
-              voiceSpeed: 1,
-            };
-             await setDoc(userRef, {
-              name: firebaseUser.displayName,
-              email: firebaseUser.email,
-              ...newUser
-            });
-             setUser({
-              ...firebaseUser,
-              ...newUser,
-            } as User);
-          }
-           if (pathname === '/login') {
-            router.push('/dashboard');
-          }
-          setLoading(false);
-        });
+    setLoading(isUserLoading);
+    if (isUserLoading) {
+      return;
+    }
 
-        return () => unsubSnapshot();
-      } else {
-        setUser(null);
-        setLoading(false);
-         if (!publicRoutes.includes(pathname)) {
-          router.push('/login');
+    if (firebaseUser) {
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      const unsubSnapshot = onSnapshot(userRef, async (docSnap) => {
+        if (docSnap.exists()) {
+          const customData = docSnap.data();
+          setUser({
+            ...firebaseUser,
+            language: customData.language || 'en',
+            voiceEnabled: customData.voiceEnabled ?? true,
+            voiceSpeed: customData.voiceSpeed ?? 1,
+          } as User);
+        } else {
+          const newUser: Omit<User, keyof FirebaseUser> = {
+            language: 'en',
+            voiceEnabled: true,
+            voiceSpeed: 1,
+          };
+          await setDoc(userRef, {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName,
+            email: firebaseUser.email,
+            ...newUser
+          });
+          setUser({
+            ...firebaseUser,
+            ...newUser,
+          } as User);
         }
+        if (publicRoutes.includes(pathname)) {
+          router.push('/dashboard');
+        }
+        setLoading(false);
+      });
+      return () => unsubSnapshot();
+    } else {
+      setUser(null);
+      setLoading(false);
+      if (!publicRoutes.includes(pathname)) {
+        router.push('/login');
       }
-    });
-
-    return () => unsubscribe();
-  }, [pathname, router]);
+    }
+  }, [firebaseUser, isUserLoading, pathname, router, db]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -107,31 +111,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const value = { user, loading, signInWithGoogle, signOut };
-  
-  if (loading && !publicRoutes.includes(pathname)) {
-    return (
-       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
 
-  if (!user && !publicRoutes.includes(pathname)) {
-     return (
+  const showLoader = loading && !publicRoutes.includes(pathname);
+  const showRedirectLoader = !user && !publicRoutes.includes(pathname);
+
+  if (showLoader || showRedirectLoader) {
+    return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
 
+  const showNavAndFooter = !loading && user && !publicRoutes.includes(pathname);
 
   return (
     <AuthContext.Provider value={value}>
-        {!loading && user && !publicRoutes.includes(pathname) && <Navbar />}
-        {children}
-        {!loading && user && !publicRoutes.includes(pathname) && <Footer />}
+      {showNavAndFooter && <Navbar />}
+      {children}
+      {showNavAndFooter && <Footer />}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export const useAuth = () => {
