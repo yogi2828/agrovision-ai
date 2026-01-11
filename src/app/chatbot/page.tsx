@@ -25,8 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { expandFAQ } from '@/ai/flows/dynamic-faq-expansion';
 import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatbot-responses';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
 
@@ -54,7 +53,6 @@ declare global {
 export default function ChatbotPage() {
   const { user } = useUser();
   const appUser = user as AppUser | null;
-  const db = useFirestore();
   const { toast } = useToast();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -77,6 +75,7 @@ export default function ChatbotPage() {
         const transcript = event.results[0][0].transcript;
         setInput(transcript);
         handleSend(transcript);
+        setListening(false);
       };
 
       recognition.onerror = (event: any) => {
@@ -95,27 +94,8 @@ export default function ChatbotPage() {
 
       recognitionRef.current = recognition;
     }
-  }, [appUser?.language]);
+  }, [appUser?.language, toast]);
 
-
-  const saveToHistory = async (userMessage: string, aiResponse: string) => {
-    if (!appUser || !db) return;
-    try {
-      await addDoc(collection(db, 'users', appUser.uid, 'chatRecords'), {
-        userMessage,
-        aiResponse,
-        language: appUser.language,
-        timestamp: serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('Error saving chat history:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save chat to history.',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleSend = async (messageContent: string) => {
     if (!messageContent.trim() || !appUser) return;
@@ -144,7 +124,6 @@ export default function ChatbotPage() {
       };
       setMessages((prev) => [...prev, aiMessage]);
       speak(aiResponseMessage);
-      await saveToHistory(messageContent, aiResponseMessage);
 
     } catch (error) {
       console.error('AI response error:', error);
