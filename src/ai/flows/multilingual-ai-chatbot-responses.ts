@@ -18,7 +18,7 @@ const MultilingualAIChatbotResponsesInputSchema = z.object({
 export type MultilingualAIChatbotResponsesInput = z.infer<typeof MultilingualAIChatbotResponsesInputSchema>;
 
 const MultilingualAIChatbotResponsesOutputSchema = z.object({
-  aiResponse: z.string().describe('The AI response in the selected language.'),
+  aiResponse: z.string().describe('The AI response in the selected language. Use markdown for formatting.'),
 });
 export type MultilingualAIChatbotResponsesOutput = z.infer<typeof MultilingualAIChatbotResponsesOutputSchema>;
 
@@ -31,8 +31,9 @@ const prompt = ai.definePrompt({
   input: {schema: MultilingualAIChatbotResponsesInputSchema},
   output: {schema: MultilingualAIChatbotResponsesOutputSchema},
   model: 'googleai/gemini-2.5-flash-lite',
-  prompt: `You are AgroVision AI, an expert agriculture assistant. 
+  prompt: `You are AgroVision AI, an expert agriculture assistant.
   Your entire response MUST be in the following language: {{{language}}}. Do not use any other language under any circumstances. Do not default to English.
+  Format your response using markdown for clarity (e.g., lists, bold text).
   Keep your answers simple, clear, and easy for a farmer to understand.
 
   User message: "{{{userMessage}}}"`,

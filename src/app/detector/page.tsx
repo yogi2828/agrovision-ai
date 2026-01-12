@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -40,7 +41,7 @@ import { useFirestore, useUser } from '@/firebase';
 import type { User as AppUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-
+import { supportedLanguages } from '@/lib/languages';
 
 export default function DetectorPage() {
   const { user } = useUser();
@@ -53,6 +54,8 @@ export default function DetectorPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [result, setResult] = useState<ImageBasedPlantDiseaseDetectionOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const currentLanguageName = supportedLanguages.find(l => l.code === appUser?.language)?.name || appUser?.language;
 
   const speak = (text: string, lang: string, rate: number) => {
     if (!window.speechSynthesis) return;
@@ -119,7 +122,7 @@ export default function DetectorPage() {
         diseaseName: response.diseaseName,
         symptoms: response.symptoms,
         causes: response.causes,
-        treatment: response.organicTreatments.length > 0 ? response.organicTreatments.map(t => `${t.productName}: ${t.instructions}`).join('; ') : 'N/A',
+        treatment: JSON.stringify({ organic: response.organicTreatments, chemical: response.chemicalTreatments }),
         prevention: response.prevention,
         language: appUser.language,
         timestamp: serverTimestamp(),
@@ -147,17 +150,19 @@ export default function DetectorPage() {
   const TreatmentList = ({ treatments, title }: { treatments: { productName: string; instructions: string; link: string; }[], title: string }) => (
     <div>
         <h4 className="font-semibold text-md mb-2">{title}</h4>
-        <ul className="space-y-2">
-            {treatments.map((treatment, index) => (
-                <li key={index} className="text-sm border-l-2 border-primary pl-3">
-                    <strong className="font-medium">{treatment.productName}</strong>
-                    <p className="text-xs">{treatment.instructions}</p>
-                    <a href={treatment.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
-                        Example Link
-                    </a>
-                </li>
-            ))}
-        </ul>
+        {treatments.length > 0 ? (
+           <ul className="space-y-2">
+              {treatments.map((treatment, index) => (
+                  <li key={index} className="text-sm border-l-2 border-primary pl-3">
+                      <strong className="font-medium">{treatment.productName}</strong>
+                      <p className="text-xs">{treatment.instructions}</p>
+                      <a href={treatment.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                          Example Link
+                      </a>
+                  </li>
+              ))}
+          </ul>
+        ) : <p className="text-xs text-muted-foreground">No {title.toLowerCase()} suggested.</p>}
     </div>
 );
 
@@ -167,29 +172,29 @@ export default function DetectorPage() {
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold font-headline tracking-tight">Plant Disease Detector</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Upload an image of a plant. Our AI will analyze it for diseases and provide expert recommendations.</p>
+        {appUser && <p className="text-sm text-muted-foreground mt-1">Analysis will be in: <span className="font-bold text-primary">{currentLanguageName}</span></p>}
       </div>
       <div className="grid lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2">
           <Card className="shadow-lg sticky top-24">
             <CardHeader>
-              <CardTitle>1. Provide Input</CardTitle>
+              <CardTitle>1. Upload Image</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="plant-image" className="cursor-pointer group">Upload Image</Label>
                   <div className={cn("relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:bg-secondary transition-colors", imagePreview && "p-0")}>
-                    <Input id="plant-image" type="file" accept="image/*" onChange={handleImageChange} ref={fileInputRef} className="hidden" />
+                    <Input id="plant-image" type="file" accept="image/*" onChange={handleImageChange} ref={fileInputRef} className="sr-only" />
                     {imagePreview ? (
                       <div className="relative aspect-video">
                         <Image src={imagePreview} alt="Plant preview" fill className="object-contain rounded-md" />
-                        <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={handleClearImage}><X className="h-4 w-4"/><span className="sr-only">Clear image</span></Button>
+                        <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7 z-10" onClick={handleClearImage}><X className="h-4 w-4"/><span className="sr-only">Clear image</span></Button>
                       </div>
                     ) : (
                       <Label htmlFor="plant-image" className="cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground h-48">
                         <Upload className="h-10 w-10" />
                         <span className="font-medium">Click to upload image</span>
-                        <span className="text-xs">Images are not stored</span>
+                        <span className="text-xs">PNG, JPG, etc.</span>
                       </Label>
                     )}
                   </div>

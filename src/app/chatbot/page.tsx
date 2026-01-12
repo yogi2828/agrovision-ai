@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -10,6 +11,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -28,6 +30,7 @@ import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatb
 import { useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
+import { supportedLanguages } from '@/lib/languages';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -60,9 +63,13 @@ export default function ChatbotPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingMessage, setSpeakingMessage] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  const currentLanguageName = supportedLanguages.find(l => l.code === appUser?.language)?.name || appUser?.language;
+
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -125,7 +132,6 @@ export default function ChatbotPage() {
         speak(aiResponseMessage, userLanguage, appUser.voiceSpeed);
       }
       
-      // Save chat to Firestore
       await addDoc(collection(db, 'users', appUser.uid, 'chatHistory'), {
         userMessage: messageContent,
         aiResponse: aiResponseMessage,
@@ -154,11 +160,18 @@ export default function ChatbotPage() {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = lang;
     utterance.rate = rate || 1;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setSpeakingMessage(text);
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setSpeakingMessage(null);
+    };
     utterance.onerror = (e) => {
       console.error("Speech synthesis error", e);
       setIsSpeaking(false);
+      setSpeakingMessage(null);
       toast({
         title: "Voice Error",
         description: "Could not play audio response.",
@@ -173,6 +186,7 @@ export default function ChatbotPage() {
       speechSynthesis.cancel();
     }
     setIsSpeaking(false);
+    setSpeakingMessage(null);
   };
 
   const handleVoiceInput = () => {
@@ -206,27 +220,14 @@ export default function ChatbotPage() {
   return (
     <div className="container py-8 flex justify-center">
       <Card className="w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="font-headline text-2xl flex items-center gap-2">
-            <Bot className="h-7 w-7 text-primary" />
-            AI Chatbot
-          </CardTitle>
-          {appUser?.voiceEnabled && (
-            isSpeaking ? (
-              <Button variant="ghost" size="icon" onClick={stopSpeaking}>
-                <VolumeX className="h-6 w-6 text-red-500" />
-              </Button>
-            ) : (
-               <Button variant="ghost" size="icon" disabled={!messages.some(m => m.role === 'assistant')} onClick={() => {
-                 const lastAiMessage = messages.slice().reverse().find(m => m.role === 'assistant');
-                 if(lastAiMessage && appUser) {
-                   speak(lastAiMessage.content, appUser.language, appUser.voiceSpeed);
-                 }
-               }}>
-                <Volume2 className="h-6 w-6 text-muted-foreground" />
-              </Button>
-            )
-          )}
+        <CardHeader>
+            <div className="flex items-center gap-3">
+              <Bot className="h-8 w-8 text-primary" />
+              <div>
+                <CardTitle className="font-headline text-2xl">AI Chatbot</CardTitle>
+                <CardDescription>Using language: <span className="font-bold text-primary">{currentLanguageName}</span></CardDescription>
+              </div>
+            </div>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col gap-4 overflow-hidden">
           <ScrollArea className="flex-1 pr-4 -mr-4" ref={scrollAreaRef}>
@@ -236,8 +237,21 @@ export default function ChatbotPage() {
                   {message.role === 'assistant' && (
                     <Avatar className="h-8 w-8"><AvatarFallback><Bot /></AvatarFallback></Avatar>
                   )}
-                  <div className={cn('max-w-md rounded-lg px-4 py-2', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  <div className={cn('max-w-xl rounded-lg px-4 py-2 relative group', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
+                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br />') }} />
+                     {message.role === 'assistant' && appUser?.voiceEnabled && (
+                      <div className="absolute -bottom-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isSpeaking && speakingMessage === message.content ? (
+                           <Button variant="ghost" size="icon" onClick={stopSpeaking}>
+                              <VolumeX className="h-4 w-4 text-red-500" />
+                            </Button>
+                        ) : (
+                          <Button variant="ghost" size="icon" onClick={() => appUser && speak(message.content, appUser.language, appUser.voiceSpeed)}>
+                            <Volume2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {message.role === 'user' && (
                     <Avatar className="h-8 w-8"><AvatarFallback><User /></AvatarFallback></Avatar>
@@ -279,9 +293,11 @@ export default function ChatbotPage() {
             <Button onClick={() => handleSend(input)} disabled={isLoading || !input.trim()} size="icon">
               <Send className="h-4 w-4" />
             </Button>
-            <Button onClick={handleVoiceInput} disabled={isLoading} size="icon" variant={isListening ? 'destructive' : 'outline'}>
-              <Mic className="h-4 w-4" />
-            </Button>
+            {appUser?.voiceEnabled && (
+               <Button onClick={handleVoiceInput} disabled={isLoading} size="icon" variant={isListening ? 'destructive' : 'outline'}>
+                <Mic className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </CardFooter>
       </Card>

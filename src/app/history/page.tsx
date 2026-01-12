@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,11 +38,24 @@ import {
 import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 
+type Treatment = {
+  productName: string;
+  instructions: string;
+  link: string;
+};
+
+type TreatmentData = {
+  organic: Treatment[];
+  chemical: Treatment[];
+}
+
 type DetectionHistory = {
   id: string;
   plantName: string;
   diseaseName: string;
-  treatment: string;
+  symptoms: string;
+  causes: string;
+  treatment: string; // This is a JSON string
   prevention: string;
   language: string;
   timestamp: Timestamp;
@@ -54,6 +68,81 @@ type ChatHistory = {
   language: string;
   timestamp: Timestamp;
 };
+
+const TreatmentList = ({ treatments, title }: { treatments: Treatment[], title: string }) => {
+    if (!treatments || treatments.length === 0) return null;
+    return (
+        <div className="mt-2">
+            <h5 className="font-semibold text-sm">{title}</h5>
+            <ul className="space-y-2 mt-1">
+                {treatments.map((t, index) => (
+                    <li key={index} className="text-xs border-l-2 border-primary pl-3">
+                        <strong className="font-medium">{t.productName}</strong>
+                        <p>{t.instructions}</p>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+const DetectionItem = ({ item }: { item: DetectionHistory }) => {
+    const [treatmentData, setTreatmentData] = useState<TreatmentData | null>(null);
+
+    useEffect(() => {
+        try {
+            const parsed = JSON.parse(item.treatment);
+            setTreatmentData(parsed);
+        } catch (e) {
+            console.error("Failed to parse treatment data:", e);
+            setTreatmentData(null);
+        }
+    }, [item.treatment]);
+
+    return (
+        <AccordionItem value={item.id} key={item.id}>
+            <AccordionTrigger>
+                <div className="flex justify-between w-full pr-4">
+                    <span className="font-semibold text-left">
+                        {item.diseaseName} on {item.plantName}
+                    </span>
+                    <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0 ml-4">
+                        <Calendar className="h-4 w-4" />
+                        {format(
+                            item.timestamp.toDate(),
+                            'MMM d, yyyy, h:mm a'
+                        )}
+                    </span>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 px-4">
+                <div>
+                    <h4 className="font-semibold">Symptoms</h4>
+                    <p className="text-muted-foreground text-sm">{item.symptoms}</p>
+                </div>
+                 <div>
+                    <h4 className="font-semibold">Causes</h4>
+                    <p className="text-muted-foreground text-sm">{item.causes}</p>
+                </div>
+                <div>
+                    <h4 className="font-semibold">Treatment</h4>
+                     {treatmentData ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
+                            <TreatmentList treatments={treatmentData.organic} title="Organic" />
+                            <TreatmentList treatments={treatmentData.chemical} title="Chemical" />
+                        </div>
+                    ) : <p className="text-muted-foreground text-sm">{item.treatment}</p>}
+                </div>
+                <div>
+                    <h4 className="font-semibold">Prevention</h4>
+                    <p className="text-muted-foreground text-sm">{item.prevention}</p>
+                </div>
+                <div className="text-xs text-muted-foreground">Language: {item.language}</div>
+            </AccordionContent>
+        </AccordionItem>
+    );
+};
+
 
 export default function HistoryPage() {
   const { user } = useUser();
@@ -141,7 +230,7 @@ export default function HistoryPage() {
             <CardHeader>
               <CardTitle>Detection History</CardTitle>
               <CardDescription>
-                A log of all your plant disease analyses (text only).
+                A log of all your plant disease analyses.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -154,33 +243,7 @@ export default function HistoryPage() {
               ) : (
                 <Accordion type="single" collapsible className="w-full">
                   {detections.map((item) => (
-                    <AccordionItem value={item.id} key={item.id}>
-                      <AccordionTrigger>
-                        <div className="flex justify-between w-full pr-4">
-                          <span className="font-semibold">
-                            {item.diseaseName} on {item.plantName}
-                          </span>
-                          <span className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            {format(
-                              item.timestamp.toDate(),
-                              'MMM d, yyyy, h:mm a'
-                            )}
-                          </span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-4 px-4">
-                        <div>
-                          <h4 className="font-semibold">Treatment</h4>
-                          <p className="text-muted-foreground">{item.treatment}</p>
-                        </div>
-                         <div>
-                          <h4 className="font-semibold">Prevention</h4>
-                          <p className="text-muted-foreground">{item.prevention}</p>
-                        </div>
-                         <div className="text-xs text-muted-foreground">Language: {item.language}</div>
-                      </AccordionContent>
-                    </AccordionItem>
+                    <DetectionItem key={item.id} item={item} />
                   ))}
                 </Accordion>
               )}
@@ -219,9 +282,9 @@ export default function HistoryPage() {
                           )}
                         </p>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2 text-sm">
                         <p><strong>You:</strong> {chat.userMessage}</p>
-                        <p><strong>AI:</strong> {chat.aiResponse}</p>
+                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: chat.aiResponse.replace(/\n/g, '<br />') }} />
                       </div>
                     </div>
                   ))}
