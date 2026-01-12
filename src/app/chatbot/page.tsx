@@ -210,10 +210,13 @@ export default function ChatbotPage() {
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+      const scrollEl = scrollAreaRef.current.querySelector('div');
+      if (scrollEl) {
+        scrollEl.scrollTo({
+            top: scrollEl.scrollHeight,
+            behavior: 'smooth',
+        });
+      }
     }
   }, [messages]);
 
@@ -304,3 +307,5 @@ export default function ChatbotPage() {
     </div>
   );
 }
+
+    
