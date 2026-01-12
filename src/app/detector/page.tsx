@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -55,7 +54,8 @@ export default function DetectorPage() {
   const [result, setResult] = useState<ImageBasedPlantDiseaseDetectionOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentLanguageName = supportedLanguages.find(l => l.code === appUser?.language)?.name || appUser?.language;
+  const currentLanguageCode = appUser?.language || 'en-IN';
+  const currentLanguageName = supportedLanguages.find(l => l.code === currentLanguageCode)?.name || currentLanguageCode;
 
   const speak = (text: string, lang: string, rate: number) => {
     if (!window.speechSynthesis) return;
@@ -117,13 +117,13 @@ export default function DetectorPage() {
     try {
       const response = await imageBasedPlantDiseaseDetection({
         photoDataUri: imagePreview,
-        language: appUser.language || 'en-IN',
+        language: currentLanguageCode,
       });
       setResult(response);
       
       if(appUser.voiceEnabled){
           const summary = `Plant: ${response.plantName}. Diagnosis: ${response.diseaseName}. ${response.symptoms}`;
-          speak(summary, appUser.language, appUser.voiceSpeed);
+          speak(summary, currentLanguageCode, appUser.voiceSpeed);
       }
 
       await addDoc(collection(db, 'users', appUser.uid, 'diseaseHistory'), {
@@ -133,7 +133,7 @@ export default function DetectorPage() {
         causes: response.causes,
         treatment: JSON.stringify({ organic: response.organicTreatments, chemical: response.chemicalTreatments }),
         prevention: response.prevention,
-        language: appUser.language,
+        language: currentLanguageCode,
         timestamp: serverTimestamp(),
       });
 
@@ -228,7 +228,7 @@ export default function DetectorPage() {
                  {appUser?.voiceEnabled && result && (isSpeaking ? (
                     <Button variant="ghost" size="icon" onClick={stopSpeaking}><VolumeX className="h-6 w-6 text-red-500" /></Button>
                   ) : (
-                    <Button variant="ghost" size="icon" onClick={() => { if(result && appUser) { const summary = `Plant: ${result.plantName}. Diagnosis: ${result.diseaseName}. ${result.symptoms}`; speak(summary, appUser.language, appUser.voiceSpeed); } }}><Volume2 className="h-6 w-6 text-muted-foreground" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => { if(result && appUser) { const summary = `Plant: ${result.plantName}. Diagnosis: ${result.diseaseName}. ${result.symptoms}`; speak(summary, currentLanguageCode, appUser.voiceSpeed); } }}><Volume2 className="h-6 w-6 text-muted-foreground" /></Button>
                   ))}
               </div>
             </CardHeader>
@@ -275,5 +275,3 @@ export default function DetectorPage() {
     </div>
   );
 }
-
-    

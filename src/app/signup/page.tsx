@@ -51,6 +51,8 @@ export default function SignUpPage() {
         voiceSpeed: 1.0,
       });
 
+      router.push('/dashboard');
+
     } catch (error: any) {
       console.error(error);
       toast({

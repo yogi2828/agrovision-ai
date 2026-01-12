@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
@@ -39,16 +39,23 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, provider);
       const { user: newUser } = result;
 
-      // Create user document in Firestore on first sign-in
+      // Check if user document already exists
       const userRef = doc(db, 'users', newUser.uid);
-      await setDoc(userRef, {
-        id: newUser.uid,
-        name: newUser.displayName,
-        email: newUser.email,
-        language: 'en-IN',
-        voiceEnabled: true,
-        voiceSpeed: 1,
-      }, { merge: true }); // Merge to avoid overwriting existing data
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        // Create user document in Firestore on first sign-in
+        await setDoc(userRef, {
+          id: newUser.uid,
+          name: newUser.displayName,
+          email: newUser.email,
+          language: 'en-IN',
+          voiceEnabled: true,
+          voiceSpeed: 1,
+        });
+      }
+      
+      router.push('/dashboard');
 
     } catch (error: any) {
       console.error(error);

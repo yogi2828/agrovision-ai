@@ -14,7 +14,7 @@ import {z} from 'genkit';
 const TreatmentSchema = z.object({
   productName: z.string().describe('The specific brand or chemical name of the product.'),
   instructions: z.string().describe('Detailed instructions on how to apply the treatment.'),
-  link: z.string().url().describe('An example URL where the product can be purchased.'),
+  link: z.string().url().describe('A valid, real-world URL where the product can be purchased.'),
 });
 
 const ImageBasedPlantDiseaseDetectionInputSchema = z.object({
@@ -64,8 +64,8 @@ If a disease is detected, you MUST provide the following:
 - diseaseName: The specific name of the disease.
 - symptoms: A paragraph detailing the visible symptoms.
 - causes: A paragraph explaining the likely causes.
-- organicTreatments: An array of at least one organic treatment option. For each, provide a product name, detailed application instructions, and a valid, example shopping link.
-- chemicalTreatments: An array of at least one chemical treatment option. For each, provide a product name, detailed application instructions, and a valid, example shopping link.
+- organicTreatments: An array of at least one organic treatment option. For each, provide a product name, detailed application instructions, and a valid, real-world shopping link (NOT an example or placeholder link).
+- chemicalTreatments: An array of at least one chemical treatment option. For each, provide a product name, detailed application instructions, and a valid, real-world shopping link (NOT an example or placeholder link).
 - prevention: A paragraph with actionable tips to prevent this disease in the future.
 
 Respond with the extracted information in the structured JSON format. Ensure all text in your response is in {{{language}}}.`,
@@ -82,5 +82,3 @@ const imageBasedPlantDiseaseDetectionFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
