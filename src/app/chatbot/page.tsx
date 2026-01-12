@@ -77,11 +77,13 @@ export default function ChatbotPage() {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = appUser?.language || 'en-IN';
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInput(transcript);
-        handleSend(transcript);
+        handleSend(transcript); // Automatically send after successful recognition
+        setIsListening(false);
       };
 
       recognitionRef.current.onerror = (event: any) => {
@@ -98,7 +100,7 @@ export default function ChatbotPage() {
         setIsListening(false);
       };
     }
-  }, [toast]);
+  }, [toast, appUser?.language]);
   
   const handleSend = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || !appUser || !db) return;
@@ -202,6 +204,7 @@ export default function ChatbotPage() {
     if (isListening) {
       recognitionRef.current.stop();
     } else {
+      stopSpeaking(); // Stop any ongoing speech synthesis
       recognitionRef.current.lang = appUser?.language || 'en-IN';
       recognitionRef.current.start();
       setIsListening(true);

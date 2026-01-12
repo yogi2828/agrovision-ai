@@ -48,7 +48,7 @@ const prompt = ai.definePrompt({
   output: {schema: ImageBasedPlantDiseaseDetectionOutputSchema},
   model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an expert plant pathologist. Your analysis and response must be comprehensive and actionable for a farmer or gardener.
-Your entire response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}. Do not use any other language under any circumstances.
+Your entire response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}. This is a strict requirement. Do not use any other language under any circumstances.
 
 Analyze this image: {{media url=photoDataUri}}
 
@@ -82,3 +82,5 @@ const imageBasedPlantDiseaseDetectionFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

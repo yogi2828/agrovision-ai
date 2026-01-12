@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +65,14 @@ export default function DetectorPage() {
     utterance.rate = rate || 1;
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onerror = () => {
+        setIsSpeaking(false);
+        toast({
+            title: "Voice Error",
+            description: "Could not play audio response.",
+            variant: "destructive",
+        });
+    }
     speechSynthesis.speak(utterance);
   };
   
@@ -92,6 +99,7 @@ export default function DetectorPage() {
     setImagePreview(null);
     setResult(null);
     if(fileInputRef.current) fileInputRef.current.value = '';
+    stopSpeaking();
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,6 +112,7 @@ export default function DetectorPage() {
 
     setIsLoading(true);
     setResult(null);
+    stopSpeaking();
 
     try {
       const response = await imageBasedPlantDiseaseDetection({
@@ -266,3 +275,5 @@ export default function DetectorPage() {
     </div>
   );
 }
+
+    
