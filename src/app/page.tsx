@@ -69,7 +69,7 @@ export default function Home() {
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="secondary">
-                  <Link href="/signup">
+                  <Link href="/login">
                      <UserPlus className="mr-2 h-5 w-5" />
                     Sign Up
                   </Link>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,16 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Alert,
   AlertDescription,
@@ -29,6 +38,7 @@ import {
   ChevronRight,
   VolumeX,
   Volume2,
+  Camera,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -54,8 +64,70 @@ export default function DetectorPage() {
   const [result, setResult] = useState<ImageBasedPlantDiseaseDetectionOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Camera state
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const currentLanguageCode = appUser?.language || 'en-IN';
   const currentLanguageName = supportedLanguages.find(l => l.code === currentLanguageCode)?.name || currentLanguageCode;
+
+  // Effect to handle camera stream activation and cleanup
+  useEffect(() => {
+    const enableCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setHasCameraPermission(true);
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+        setHasCameraPermission(false);
+        toast({
+          title: 'Camera Access Denied',
+          description: 'Please grant camera permission in your browser settings.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    if (isCameraOpen) {
+      enableCamera();
+    } else {
+      // Cleanup stream when dialog closes
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    }
+
+    return () => {
+      // Ensure cleanup on component unmount
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [isCameraOpen, toast]);
+
+  const handleCapture = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        setImagePreview(dataUrl);
+        setResult(null);
+        setIsCameraOpen(false); // Close the dialog
+      }
+    }
+  };
+
 
   const speak = (text: string, lang: string, rate: number) => {
     if (!window.speechSynthesis) return;
@@ -166,7 +238,7 @@ export default function DetectorPage() {
                       <strong className="font-medium">{treatment.productName}</strong>
                       <p className="text-xs">{treatment.instructions}</p>
                       <a href={treatment.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
-                          Example Link
+                          View Product
                       </a>
                   </li>
               ))}
@@ -187,7 +259,7 @@ export default function DetectorPage() {
         <div className="lg:col-span-2">
           <Card className="shadow-lg sticky top-24">
             <CardHeader>
-              <CardTitle>1. Upload Image</CardTitle>
+              <CardTitle>1. Provide Image</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -200,11 +272,22 @@ export default function DetectorPage() {
                         <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7 z-10" onClick={handleClearImage}><X className="h-4 w-4"/><span className="sr-only">Clear image</span></Button>
                       </div>
                     ) : (
-                      <Label htmlFor="plant-image" className="cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground h-48">
-                        <Upload className="h-10 w-10" />
-                        <span className="font-medium">Click to upload image</span>
-                        <span className="text-xs">PNG, JPG, etc.</span>
-                      </Label>
+                       <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground h-48">
+                        <Label htmlFor="plant-image" className="cursor-pointer flex flex-col items-center justify-center gap-2 p-4 rounded-lg hover:bg-accent w-full">
+                          <Upload className="h-10 w-10" />
+                          <span className="font-medium">Click to upload image</span>
+                          <span className="text-xs">PNG, JPG, etc.</span>
+                        </Label>
+                        <div className="flex items-center gap-2 w-full px-4">
+                            <div className="flex-grow border-t"></div>
+                            <span className="text-xs uppercase">Or</span>
+                            <div className="flex-grow border-t"></div>
+                        </div>
+                        <Button type="button" variant="outline" className="w-full" onClick={() => setIsCameraOpen(true)}>
+                          <Camera className="mr-2 h-4 w-4" />
+                          Use Camera
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -215,6 +298,33 @@ export default function DetectorPage() {
                 </Button>
               </form>
             </CardContent>
+            <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+                <DialogContent className="sm:max-w-[625px]">
+                    <DialogHeader>
+                        <DialogTitle>Live Camera</DialogTitle>
+                        <DialogDescription>
+                            Position your plant in the frame and click capture.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="relative aspect-video bg-secondary rounded-lg overflow-hidden flex items-center justify-center">
+                        <video ref={videoRef} className={cn("w-full h-full object-cover", hasCameraPermission === false && 'hidden')} autoPlay playsInline muted />
+                        {hasCameraPermission === false && (
+                             <Alert variant="destructive" className="w-auto">
+                                <Camera className="h-4 w-4" />
+                                <AlertTitle>Camera Access Denied!</AlertTitle>
+                                <AlertDescription>
+                                Please allow camera access in your browser settings.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleCapture} disabled={hasCameraPermission !== true}>
+                            <Camera className="mr-2 h-4 w-4" /> Capture Photo
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
           </Card>
         </div>
         <div className="lg:col-span-3">
@@ -265,7 +375,7 @@ export default function DetectorPage() {
                 <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-16">
                   <FileQuestion className="h-16 w-16 mb-4" />
                   <p className="font-semibold text-lg">Your analysis will appear here.</p>
-                  <p className="text-sm">Upload a plant image to get started.</p>
+                  <p className="text-sm">Upload an image or use your camera to get started.</p>
                 </div>
               )}
             </CardContent>

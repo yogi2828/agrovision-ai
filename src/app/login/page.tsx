@@ -83,16 +83,16 @@ export default function LoginPage() {
           <CardHeader className="text-center space-y-2">
             <div className="flex justify-center items-center gap-2">
               <Leaf className="h-8 w-8 text-primary"/>
-              <CardTitle className="text-3xl font-bold font-headline">AgroVision AI</CardTitle>
+              <CardTitle className="text-3xl font-bold font-headline">Welcome!</CardTitle>
             </div>
             <CardDescription>
-              Sign in to access your dashboard.
+              Sign in or sign up with Google to continue.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
               <Button onClick={handleGoogleSignIn} className="w-full" disabled={isSigningIn}>
-                {isSigningIn ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Sign In with Google'}
+                {isSigningIn ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 'Continue with Google'}
               </Button>
             </div>
           </CardContent>
