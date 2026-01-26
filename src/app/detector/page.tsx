@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,8 +35,6 @@ import {
   FileQuestion,
   X,
   ChevronRight,
-  VolumeX,
-  Volume2,
   Camera,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -58,10 +56,8 @@ export default function DetectorPage() {
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [result, setResult] = useState<ImageBasedPlantDiseaseDetectionOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   // Camera state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -71,25 +67,6 @@ export default function DetectorPage() {
 
   const currentLanguageCode = appUser?.language || 'en-IN';
   const currentLanguageName = supportedLanguages.find(l => l.code === currentLanguageCode)?.name || currentLanguageCode;
-
-  useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      if (availableVoices.length > 0) {
-        setVoices(availableVoices);
-      }
-    };
-
-    // Initial load
-    loadVoices();
-
-    // Event listener for when voices change
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }, []);
 
   // Effect to handle camera stream activation and cleanup
   useEffect(() => {
@@ -156,57 +133,6 @@ export default function DetectorPage() {
     }
   };
 
-
-  const stopSpeaking = () => {
-    if (window.speechSynthesis && speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
-    setIsSpeaking(false);
-  };
-  
-  const speak = useCallback((text: string, lang: string, rate: number) => {
-    if (!window.speechSynthesis) return;
-    stopSpeaking();
-
-    let voice = voices.find(v => v.lang === lang);
-    if (!voice) {
-      voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
-    }
-
-    if (!voice) {
-      if (voices.length > 0) {
-        toast({
-            title: "Voice Not Available",
-            description: `Your browser does not have a voice for the language: ${supportedLanguages.find(l => l.code === lang)?.name || lang}.`,
-            variant: "destructive",
-        });
-      } else {
-        toast({
-            title: "Voice Engine Loading",
-            description: "The text-to-speech engine is still loading. Please try again in a moment.",
-        });
-      }
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
-    utterance.rate = rate || 1;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = (e) => {
-        console.error("Speech synthesis error", e);
-        setIsSpeaking(false);
-        toast({
-            title: "Voice Error",
-            description: "Could not play audio response. This can happen if the selected language voice is not supported by your browser.",
-            variant: "destructive",
-        });
-    }
-    speechSynthesis.speak(utterance);
-  }, [voices, toast]);
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -223,7 +149,6 @@ export default function DetectorPage() {
     setImagePreview(null);
     setResult(null);
     if(fileInputRef.current) fileInputRef.current.value = '';
-    stopSpeaking();
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -236,7 +161,6 @@ export default function DetectorPage() {
 
     setIsLoading(true);
     setResult(null);
-    stopSpeaking();
 
     try {
       const response = await imageBasedPlantDiseaseDetection({
@@ -244,11 +168,6 @@ export default function DetectorPage() {
         language: currentLanguageCode,
       });
       setResult(response);
-      
-      if(appUser.voiceEnabled){
-          const summary = `Plant: ${response.plantName}. Diagnosis: ${response.diseaseName}. ${response.symptoms}`;
-          speak(summary, currentLanguageCode, appUser.voiceSpeed);
-      }
 
       await addDoc(collection(db, 'users', appUser.uid, 'diseaseHistory'), {
         plantName: response.plantName,
@@ -389,11 +308,6 @@ export default function DetectorPage() {
                   <CardTitle>2. AI Analysis Result</CardTitle>
                   <CardDescription>The diagnosis from our AI will appear below.</CardDescription>
                 </div>
-                 {appUser?.voiceEnabled && result && (isSpeaking ? (
-                    <Button variant="ghost" size="icon" onClick={stopSpeaking}><VolumeX className="h-6 w-6 text-red-500" /></Button>
-                  ) : (
-                    <Button variant="ghost" size="icon" onClick={() => { if(result && appUser) { const summary = `Plant: ${result.plantName}. Diagnosis: ${result.diseaseName}. ${result.symptoms}`; speak(summary, currentLanguageCode, appUser.voiceSpeed); } }}><Volume2 className="h-6 w-6 text-muted-foreground" /></Button>
-                  ))}
               </div>
             </CardHeader>
             <CardContent>
