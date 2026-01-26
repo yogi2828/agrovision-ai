@@ -37,6 +37,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
+import Markdown from 'react-markdown';
 
 type Treatment = {
   productName: string;
@@ -284,7 +285,9 @@ export default function HistoryPage() {
                       </div>
                       <div className="space-y-2 text-sm">
                         <p><strong>You:</strong> {chat.userMessage}</p>
-                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: chat.aiResponse.replace(/\n/g, '<br />') }} />
+                        <div className="prose prose-sm max-w-none">
+                            <Markdown>{chat.aiResponse}</Markdown>
+                        </div>
                       </div>
                     </div>
                   ))}
