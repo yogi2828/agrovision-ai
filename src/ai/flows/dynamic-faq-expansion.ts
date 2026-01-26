@@ -37,7 +37,7 @@ const expandFAQPrompt = ai.definePrompt({
   The user has selected the following question:
   "{{question}}"
 
-  Your entire response and all text in your structured JSON output MUST be in the following language: {{{language}}}. Do not use any other language under any circumstances.
+  Your entire response, including all keys and values in the JSON output, must be translated into this language: {{{language}}}. This is a strict and absolute requirement. Do not use English unless the specified language is English.
   `,
 });
 

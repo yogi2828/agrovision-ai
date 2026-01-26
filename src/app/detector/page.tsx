@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -11,7 +12,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   Dialog,
@@ -46,15 +46,14 @@ import {
   type ImageBasedPlantDiseaseDetectionOutput,
 } from '@/ai/flows/image-based-plant-disease-detection';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
-import type { User as AppUser } from '@/lib/types';
+import { useFirestore } from '@/firebase';
+import { useAppUser } from '@/hooks/use-app-user';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { supportedLanguages } from '@/lib/languages';
 
 export default function DetectorPage() {
-  const { user } = useUser();
-  const appUser = user as AppUser | null;
+  const { user: appUser } = useAppUser();
   const db = useFirestore();
   const { toast } = useToast();
 
@@ -75,39 +74,49 @@ export default function DetectorPage() {
 
   // Effect to handle camera stream activation and cleanup
   useEffect(() => {
+    if (!isCameraOpen) {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      return;
+    }
+
+    let isCancelled = false;
+
     const enableCamera = async () => {
+      setHasCameraPermission(null); // Reset on open
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (isCancelled) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
         setHasCameraPermission(true);
       } catch (err) {
-        console.error("Error accessing camera:", err);
-        setHasCameraPermission(false);
-        toast({
-          title: 'Camera Access Denied',
-          description: 'Please grant camera permission in your browser settings.',
-          variant: 'destructive',
-        });
+        if (!isCancelled) {
+          console.error("Error accessing camera:", err);
+          setHasCameraPermission(false);
+          toast({
+            title: 'Camera Access Denied',
+            description: 'Please grant camera permission in your browser settings.',
+            variant: 'destructive',
+          });
+        }
       }
     };
 
-    if (isCameraOpen) {
-      enableCamera();
-    } else {
-      // Cleanup stream when dialog closes
+    enableCamera();
+
+    return () => {
+      isCancelled = true;
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
-      }
-    }
-
-    return () => {
-      // Ensure cleanup on component unmount
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, [isCameraOpen, toast]);
@@ -307,15 +316,17 @@ export default function DetectorPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="relative aspect-video bg-secondary rounded-lg overflow-hidden flex items-center justify-center">
-                        <video ref={videoRef} className={cn("w-full h-full object-cover", hasCameraPermission === false && 'hidden')} autoPlay playsInline muted />
-                        {hasCameraPermission === false && (
-                             <Alert variant="destructive" className="w-auto">
-                                <Camera className="h-4 w-4" />
-                                <AlertTitle>Camera Access Denied!</AlertTitle>
-                                <AlertDescription>
-                                Please allow camera access in your browser settings.
-                                </AlertDescription>
-                            </Alert>
+                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                        {hasCameraPermission !== true && (
+                             <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                                 <Alert variant="destructive" className="w-auto">
+                                    <Camera className="h-4 w-4" />
+                                    <AlertTitle>Camera Access Required</AlertTitle>
+                                    <AlertDescription>
+                                    Please allow camera access to use this feature.
+                                    </AlertDescription>
+                                </Alert>
+                            </div>
                         )}
                     </div>
                     <DialogFooter>

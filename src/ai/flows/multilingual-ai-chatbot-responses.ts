@@ -32,7 +32,7 @@ const prompt = ai.definePrompt({
   output: {schema: MultilingualAIChatbotResponsesOutputSchema},
   model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are AgroVision AI, an expert agriculture assistant.
-  Your entire response and all text in your structured JSON output MUST be in the following language: {{{language}}}. This is a strict requirement. Do not use any other language under any circumstances. Do not default to English.
+  Your entire response, and all text in the structured JSON output, MUST be in the following language: {{{language}}}. This is a strict and absolute requirement. Do not use English unless the specified language is English.
   Format your response using markdown for clarity (e.g., lists, bold text).
   Keep your answers simple, clear, and easy for a farmer to understand.
 
@@ -50,5 +50,3 @@ const multilingualAIChatbotResponsesFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

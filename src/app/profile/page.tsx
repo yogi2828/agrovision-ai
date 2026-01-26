@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,23 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, Mail, Languages, Settings } from 'lucide-react';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth } from '@/firebase';
+import { useAppUser } from '@/hooks/use-app-user';
 import { signOut as firebaseSignOut } from 'firebase/auth';
-import type { User as AppUser } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { supportedLanguages } from '@/lib/languages';
 
 export default function ProfilePage() {
-  const { user, isUserLoading } = useUser();
+  const { user: appUser, isLoading: isUserLoading } = useAppUser();
   const auth = useAuth();
   const router = useRouter();
-  const appUser = user as AppUser | null;
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && !appUser) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [appUser, isUserLoading, router]);
 
   const handleSignOut = async () => {
     if (auth) {
@@ -37,6 +38,8 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  const currentLanguageName = supportedLanguages.find(l => l.code === appUser.language)?.name || appUser.language;
 
   return (
     <div className="container py-12 flex justify-center">
@@ -64,7 +67,7 @@ export default function ProfilePage() {
             <Languages className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Preferred Language</p>
-              <p className="font-semibold">{appUser.language ? appUser.language.toUpperCase() : 'Not Set'}</p>
+              <p className="font-semibold">{currentLanguageName}</p>
             </div>
           </div>
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">

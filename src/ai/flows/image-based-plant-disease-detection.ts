@@ -48,7 +48,7 @@ const prompt = ai.definePrompt({
   output: {schema: ImageBasedPlantDiseaseDetectionOutputSchema},
   model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an expert plant pathologist. Your analysis and response must be comprehensive and actionable for a farmer or gardener.
-Your entire response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}. This is a strict requirement. Do not use any other language under any circumstances.
+Your entire response, and all text in the structured JSON output, MUST be in the user's specified language: {{{language}}}. This is a strict and absolute requirement. Do not use English unless the specified language is English.
 
 Analyze this image: {{media url=photoDataUri}}
 
@@ -64,8 +64,8 @@ If a disease is detected, you MUST provide the following:
 - diseaseName: The specific name of the disease.
 - symptoms: A paragraph detailing the visible symptoms.
 - causes: A paragraph explaining the likely causes.
-- organicTreatments: An array of at least one organic treatment option. For each, provide a product name, detailed application instructions, and a valid, real-world shopping link (NOT an example or placeholder link).
-- chemicalTreatments: An array of at least one chemical treatment option. For each, provide a product name, detailed application instructions, and a valid, real-world shopping link (NOT an example or placeholder link).
+- organicTreatments: An array of at least one organic treatment option. For each, provide a product name, detailed application instructions, and a valid, real-world shopping link (NOT a placeholder or example.com link).
+- chemicalTreatments: An array of at least one chemical treatment option. For each, provide a product name, detailed application instructions, and a valid, real-world shopping link (NOT a placeholder or example.com link).
 - prevention: A paragraph with actionable tips to prevent this disease in the future.
 
 Respond with the extracted information in the structured JSON format. Ensure all text in your response is in {{{language}}}.`,

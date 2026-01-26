@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -23,10 +24,10 @@ import {
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore } from '@/firebase';
+import { useAppUser } from '@/hooks/use-app-user';
 import { supportedLanguages } from '@/lib/languages';
 import { useTheme } from 'next-themes';
-import type { User as AppUser } from '@/lib/types';
 
 type SettingsFormValues = {
   language: string;
@@ -36,8 +37,7 @@ type SettingsFormValues = {
 };
 
 export default function SettingsPage() {
-  const { user } = useUser();
-  const appUser = user as AppUser | null;
+  const { user: appUser, isLoading: isUserLoading } = useAppUser();
   const db = useFirestore();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
@@ -65,9 +65,9 @@ export default function SettingsPage() {
   }, [appUser, theme, reset]);
 
   const onSubmit = async (data: SettingsFormValues) => {
-    if (!user || !db) return;
+    if (!appUser || !db) return;
     try {
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', appUser.uid);
       await updateDoc(userRef, {
         language: data.language,
         voiceEnabled: data.voiceEnabled,
@@ -89,7 +89,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (!user) {
+  if (isUserLoading || !appUser) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

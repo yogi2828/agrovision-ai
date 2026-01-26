@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -32,9 +33,9 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supportedLanguages } from '@/lib/languages';
 import { doc, updateDoc } from 'firebase/firestore';
-import { useFirestore, useAuth, useUser } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
+import { useAppUser } from '@/hooks/use-app-user';
 import { useState } from 'react';
-import type { User as AppUser } from '@/lib/types';
 
 
 const navLinks = [
@@ -54,17 +55,16 @@ const publicNavLinks = [
 ];
 
 export default function Navbar() {
-  const { user } = useUser();
-  const appUser = user as AppUser | null;
+  const { user: appUser } = useAppUser();
   const auth = useAuth();
   const db = useFirestore();
   const { setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLanguageChange = async (langCode: string) => {
-    if (user && db) {
+    if (appUser && db) {
       try {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, 'users', appUser.uid);
         await updateDoc(userRef, { language: langCode });
       } catch (error) {
         console.error('Error updating language:', error);
@@ -143,7 +143,7 @@ export default function Navbar() {
                 <span className="text-lg">AgroVision AI</span>
               </Link>
               <div className="flex flex-col gap-1 px-2">
-                {user ? <AuthedNavContent /> : <PublicNavContent />}
+                {appUser ? <AuthedNavContent /> : <PublicNavContent />}
               </div>
             </div>
           </SheetContent>
@@ -156,10 +156,10 @@ export default function Navbar() {
 
 
         <nav className="hidden md:flex items-center space-x-1 ml-6 text-sm font-medium">
-          {user ? <AuthedNavContent /> : <PublicNavContent />}
+          {appUser ? <AuthedNavContent /> : <PublicNavContent />}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
-          {user && (
+          {appUser && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -202,7 +202,7 @@ export default function Navbar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {user ? (
+          {appUser ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                  <Button variant="secondary" size="icon" className="rounded-full">
@@ -213,7 +213,7 @@ export default function Navbar() {
                 <DropdownMenuLabel>
                   <p>My Account</p>
                   <p className="font-normal text-sm text-muted-foreground">
-                    {user.email}
+                    {appUser.email}
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

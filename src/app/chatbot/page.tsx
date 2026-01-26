@@ -27,10 +27,11 @@ import {
 import { cn } from '@/lib/utils';
 import { expandFAQ } from '@/ai/flows/dynamic-faq-expansion';
 import { multilingualAIChatbotResponses } from '@/ai/flows/multilingual-ai-chatbot-responses';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore } from '@/firebase';
+import { useAppUser } from '@/hooks/use-app-user';
 import { useToast } from '@/hooks/use-toast';
-import type { User as AppUser } from '@/lib/types';
 import { supportedLanguages } from '@/lib/languages';
+import Markdown from 'react-markdown';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -53,8 +54,7 @@ declare global {
 }
 
 export default function ChatbotPage() {
-  const { user } = useUser();
-  const appUser = user as AppUser | null;
+  const { user: appUser } = useAppUser();
   const db = useFirestore();
   const { toast } = useToast();
 
@@ -68,7 +68,8 @@ export default function ChatbotPage() {
   const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
-  const currentLanguageName = supportedLanguages.find(l => l.code === appUser?.language)?.name || appUser?.language;
+  const currentLanguageCode = appUser?.language || 'en-IN';
+  const currentLanguageName = supportedLanguages.find(l => l.code === currentLanguageCode)?.name || currentLanguageCode;
 
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export default function ChatbotPage() {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = appUser?.language || 'en-IN';
+      recognitionRef.current.lang = currentLanguageCode;
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
@@ -100,7 +101,7 @@ export default function ChatbotPage() {
         setIsListening(false);
       };
     }
-  }, [toast, appUser?.language]);
+  }, [toast, currentLanguageCode]);
   
   const handleSend = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || !appUser || !db) return;
@@ -244,7 +245,9 @@ export default function ChatbotPage() {
                     <Avatar className="h-8 w-8"><AvatarFallback><Bot /></AvatarFallback></Avatar>
                   )}
                   <div className={cn('max-w-xl rounded-lg px-4 py-2 relative group', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
-                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br />') }} />
+                    <div className="prose prose-sm max-w-none">
+                        <Markdown>{message.content}</Markdown>
+                    </div>
                      {message.role === 'assistant' && appUser?.voiceEnabled && (
                       <div className="absolute -bottom-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                         {isSpeaking && speakingMessage === message.content ? (
@@ -310,5 +313,3 @@ export default function ChatbotPage() {
     </div>
   );
 }
-
-    

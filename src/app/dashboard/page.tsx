@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -19,9 +20,10 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore } from '@/firebase';
+import { useAppUser } from '@/hooks/use-app-user';
 import { formatDistanceToNow } from 'date-fns';
-import type { User as AppUser } from '@/lib/types';
+import { supportedLanguages } from '@/lib/languages';
 
 type ActivityItem = {
   id: string;
@@ -31,12 +33,14 @@ type ActivityItem = {
 };
 
 export default function DashboardPage() {
-  const { user } = useUser();
-  const appUser = user as AppUser | null;
+  const { user: appUser, isLoading: isUserLoading } = useAppUser();
   const db = useFirestore();
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
   const [greeting, setGreeting] = useState('');
+  
+  const currentLanguageName = supportedLanguages.find(l => l.code === appUser?.language)?.name || appUser?.language;
+
 
   useEffect(() => {
     const hours = new Date().getHours();
@@ -46,17 +50,17 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (user && db) {
+    if (appUser && db) {
       const fetchRecentActivity = async () => {
         setActivityLoading(true);
         try {
           const detectionQuery = query(
-            collection(db, 'users', user.uid, 'diseaseHistory'),
+            collection(db, 'users', appUser.uid, 'diseaseHistory'),
             orderBy('timestamp', 'desc'),
             limit(2)
           );
           const chatQuery = query(
-            collection(db, 'users', user.uid, 'chatHistory'),
+            collection(db, 'users', appUser.uid, 'chatHistory'),
             orderBy('timestamp', 'desc'),
             limit(2)
           );
@@ -98,12 +102,12 @@ export default function DashboardPage() {
       };
 
       fetchRecentActivity();
-    } else if (!user) {
+    } else if (!appUser) {
       setActivityLoading(false);
     }
-  }, [user, db]);
+  }, [appUser, db]);
 
-  if (!user) {
+  if (isUserLoading || !appUser) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -115,14 +119,14 @@ export default function DashboardPage() {
     <div className="container py-8 md:py-12">
       <div className="space-y-4 mb-12">
         <h1 className="text-3xl md:text-4xl font-bold font-headline">
-          {greeting}, {user.displayName?.split(' ')[0]}!
+          {greeting}, {appUser.displayName?.split(' ')[0]}!
         </h1>
         <p className="text-lg text-muted-foreground">
           Welcome back to your AgroVision dashboard. Ready to check on your plants?
         </p>
         {appUser?.language && (
             <p className="text-sm text-muted-foreground">
-            Current language: <span className="font-semibold text-primary">{appUser.language}</span>
+            Current language: <span className="font-semibold text-primary">{currentLanguageName}</span>
             </p>
         )}
       </div>
