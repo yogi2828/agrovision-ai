@@ -127,14 +127,24 @@ export default function ChatbotPage() {
     
     const utterance = new SpeechSynthesisUtterance(text);
     
-    const voice = voices.find(v => v.lang === lang);
-    if (voice) {
+    let voice = voices.find(v => v.lang === lang);
+    if (!voice) {
+      voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+    }
+    
+    // If we have a list of voices from the browser, and none of them match the desired language,
+    // we can predict that speech will fail. We inform the user and stop.
+    if (voices.length > 0 && !voice) {
+        toast({
+            title: "Voice Not Available",
+            description: `Your browser does not have a voice for the language: ${supportedLanguages.find(l => l.code === lang)?.name || lang}.`,
+            variant: "destructive",
+        });
+        return; // Prevent calling speechSynthesis.speak() which would cause an error
+    }
+
+    if(voice) {
       utterance.voice = voice;
-    } else if (voices.length > 0) {
-      const fallbackVoice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
-      if (fallbackVoice) {
-        utterance.voice = fallbackVoice;
-      }
     }
     
     utterance.lang = lang;
@@ -153,7 +163,7 @@ export default function ChatbotPage() {
       setSpeakingMessage(null);
       toast({
         title: "Voice Error",
-        description: "Could not play audio response. Your browser may not support voices for the selected language.",
+        description: "Could not play audio response. This can happen if the selected language voice is not supported by your browser.",
         variant: "destructive",
       });
     };
