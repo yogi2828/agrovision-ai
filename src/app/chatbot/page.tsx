@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -64,6 +63,7 @@ export default function ChatbotPage() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingMessage, setSpeakingMessage] = useState<string | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -71,6 +71,16 @@ export default function ChatbotPage() {
   const currentLanguageCode = appUser?.language || 'en-IN';
   const currentLanguageName = supportedLanguages.find(l => l.code === currentLanguageCode)?.name || currentLanguageCode;
 
+  useEffect(() => {
+    const loadVoices = () => {
+      setVoices(window.speechSynthesis.getVoices());
+    };
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -103,6 +113,53 @@ export default function ChatbotPage() {
     }
   }, [toast, currentLanguageCode]);
   
+  const stopSpeaking = () => {
+    if (window.speechSynthesis && speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+    setSpeakingMessage(null);
+  };
+
+  const speak = useCallback((text: string, lang: string, rate: number) => {
+    if (!window.speechSynthesis) return;
+    stopSpeaking();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    const voice = voices.find(v => v.lang === lang);
+    if (voice) {
+      utterance.voice = voice;
+    } else if (voices.length > 0) {
+      const fallbackVoice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+      if (fallbackVoice) {
+        utterance.voice = fallbackVoice;
+      }
+    }
+    
+    utterance.lang = lang;
+    utterance.rate = rate || 1;
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setSpeakingMessage(text);
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setSpeakingMessage(null);
+    };
+    utterance.onerror = (e) => {
+      console.error("Speech synthesis error", e);
+      setIsSpeaking(false);
+      setSpeakingMessage(null);
+      toast({
+        title: "Voice Error",
+        description: "Could not play audio response. Your browser may not support voices for the selected language.",
+        variant: "destructive",
+      });
+    };
+    speechSynthesis.speak(utterance);
+  }, [voices, toast]);
+
   const handleSend = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || !appUser || !db) return;
     const userMessage: Message = { role: 'user', content: messageContent };
@@ -154,43 +211,7 @@ export default function ChatbotPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [appUser, db, toast]);
-
-  const speak = (text: string, lang: string, rate: number) => {
-    if (!window.speechSynthesis) return;
-    stopSpeaking();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    utterance.rate = rate || 1;
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      setSpeakingMessage(text);
-    };
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setSpeakingMessage(null);
-    };
-    utterance.onerror = (e) => {
-      console.error("Speech synthesis error", e);
-      setIsSpeaking(false);
-      setSpeakingMessage(null);
-      toast({
-        title: "Voice Error",
-        description: "Could not play audio response.",
-        variant: "destructive",
-      });
-    };
-    speechSynthesis.speak(utterance);
-  };
-  
-  const stopSpeaking = () => {
-    if (window.speechSynthesis && speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
-    setIsSpeaking(false);
-    setSpeakingMessage(null);
-  };
+  }, [appUser, db, toast, speak]);
 
   const handleVoiceInput = () => {
     if (!recognitionRef.current) {

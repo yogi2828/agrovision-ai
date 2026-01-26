@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +61,7 @@ export default function DetectorPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [result, setResult] = useState<ImageBasedPlantDiseaseDetectionOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   // Camera state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -71,6 +71,17 @@ export default function DetectorPage() {
 
   const currentLanguageCode = appUser?.language || 'en-IN';
   const currentLanguageName = supportedLanguages.find(l => l.code === currentLanguageCode)?.name || currentLanguageCode;
+
+  useEffect(() => {
+    const loadVoices = () => {
+      setVoices(window.speechSynthesis.getVoices());
+    };
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   // Effect to handle camera stream activation and cleanup
   useEffect(() => {
@@ -138,31 +149,43 @@ export default function DetectorPage() {
   };
 
 
-  const speak = (text: string, lang: string, rate: number) => {
-    if (!window.speechSynthesis) return;
-    stopSpeaking();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    utterance.rate = rate || 1;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => {
-        setIsSpeaking(false);
-        toast({
-            title: "Voice Error",
-            description: "Could not play audio response.",
-            variant: "destructive",
-        });
-    }
-    speechSynthesis.speak(utterance);
-  };
-  
   const stopSpeaking = () => {
     if (window.speechSynthesis && speechSynthesis.speaking) {
       speechSynthesis.cancel();
     }
     setIsSpeaking(false);
   };
+  
+  const speak = useCallback((text: string, lang: string, rate: number) => {
+    if (!window.speechSynthesis) return;
+    stopSpeaking();
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    const voice = voices.find(v => v.lang === lang);
+    if (voice) {
+      utterance.voice = voice;
+    } else if (voices.length > 0) {
+      const fallbackVoice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+      if (fallbackVoice) {
+        utterance.voice = fallbackVoice;
+      }
+    }
+
+    utterance.lang = lang;
+    utterance.rate = rate || 1;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = (e) => {
+        console.error("Speech synthesis error", e);
+        setIsSpeaking(false);
+        toast({
+            title: "Voice Error",
+            description: "Could not play audio response. Your browser may not support voices for the selected language.",
+            variant: "destructive",
+        });
+    }
+    speechSynthesis.speak(utterance);
+  }, [voices, toast]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
