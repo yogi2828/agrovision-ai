@@ -73,10 +73,18 @@ export default function ChatbotPage() {
 
   useEffect(() => {
     const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
+      const availableVoices = window.speechSynthesis.getVoices();
+      if (availableVoices.length > 0) {
+        setVoices(availableVoices);
+      }
     };
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    // Initial load
     loadVoices();
+
+    // Event listener for when voices change
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
@@ -125,29 +133,30 @@ export default function ChatbotPage() {
     if (!window.speechSynthesis) return;
     stopSpeaking();
     
-    const utterance = new SpeechSynthesisUtterance(text);
-    
     let voice = voices.find(v => v.lang === lang);
     if (!voice) {
       voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
     }
-    
-    // If we have a list of voices from the browser, and none of them match the desired language,
-    // we can predict that speech will fail. We inform the user and stop.
-    if (voices.length > 0 && !voice) {
+
+    if (!voice) {
+      if (voices.length > 0) {
         toast({
             title: "Voice Not Available",
             description: `Your browser does not have a voice for the language: ${supportedLanguages.find(l => l.code === lang)?.name || lang}.`,
             variant: "destructive",
         });
-        return; // Prevent calling speechSynthesis.speak() which would cause an error
+      } else {
+        toast({
+            title: "Voice Engine Loading",
+            description: "The text-to-speech engine is still loading. Please try again in a moment.",
+        });
+      }
+      return; 
     }
 
-    if(voice) {
-      utterance.voice = voice;
-    }
-    
-    utterance.lang = lang;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
     utterance.rate = rate || 1;
     utterance.onstart = () => {
       setIsSpeaking(true);
