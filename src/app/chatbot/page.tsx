@@ -52,6 +52,22 @@ declare global {
   }
 }
 
+// Helper to clean markdown for speech synthesis
+const sanitizeForSpeech = (markdownText: string): string => {
+  if (!markdownText) return '';
+  // This regex chain removes headers, bold, italics, code, strikethrough, links, and list items.
+  return markdownText
+    .replace(/#+\s/g, '')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
+    .replace(/~~(.*?)~~/g, '$1')
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+    .replace(/^- /gm, '')
+    .replace(/\n/g, ' ');
+};
+
+
 export default function ChatbotPage() {
   const { user: appUser } = useAppUser();
   const db = useFirestore();
@@ -208,7 +224,7 @@ export default function ChatbotPage() {
       setMessages((prev) => [...prev, aiMessage]);
       
       if (appUser.voiceEnabled) {
-        speak(aiResponseMessage, userLanguage, appUser.voiceSpeed);
+        speak(sanitizeForSpeech(aiResponseMessage), userLanguage, appUser.voiceSpeed);
       }
       
       await addDoc(collection(db, 'users', appUser.uid, 'chatHistory'), {
@@ -290,12 +306,12 @@ export default function ChatbotPage() {
                     </div>
                      {message.role === 'assistant' && appUser?.voiceEnabled && (
                       <div className="absolute -bottom-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {isSpeaking && speakingMessage === message.content ? (
+                        {isSpeaking && speakingMessage === sanitizeForSpeech(message.content) ? (
                            <Button variant="ghost" size="icon" onClick={stopSpeaking}>
                               <VolumeX className="h-4 w-4 text-red-500" />
                             </Button>
                         ) : (
-                          <Button variant="ghost" size="icon" onClick={() => appUser && speak(message.content, appUser.language, appUser.voiceSpeed)}>
+                          <Button variant="ghost" size="icon" onClick={() => appUser && speak(sanitizeForSpeech(message.content), appUser.language, appUser.voiceSpeed)}>
                             <Volume2 className="h-4 w-4" />
                           </Button>
                         )}
