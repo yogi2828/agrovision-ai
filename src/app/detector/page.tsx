@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -83,7 +84,9 @@ export default function DetectorPage() {
     const enableCamera = async () => {
       setHasCameraPermission(null); // Reset on open
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' } 
+        });
         if (isCancelled) {
           stream.getTracks().forEach(track => track.stop());
           return;

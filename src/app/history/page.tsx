@@ -27,17 +27,33 @@ import {
   Thermometer,
   Calendar,
   MessageSquare,
+  Trash2,
 } from 'lucide-react';
 import {
   collection,
   query,
   orderBy,
   getDocs,
+  deleteDoc,
+  doc,
   type Timestamp,
 } from 'firebase/firestore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import Markdown from 'react-markdown';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 type Treatment = {
   productName: string;
@@ -87,109 +103,72 @@ const TreatmentList = ({ treatments, title }: { treatments: Treatment[], title: 
     );
 }
 
-const DetectionItem = ({ item }: { item: DetectionHistory }) => {
-    const [treatmentData, setTreatmentData] = useState<TreatmentData | null>(null);
-
-    useEffect(() => {
-        try {
-            const parsed = JSON.parse(item.treatment);
-            setTreatmentData(parsed);
-        } catch (e) {
-            console.error("Failed to parse treatment data:", e);
-            setTreatmentData(null);
-        }
-    }, [item.treatment]);
-
-    return (
-        <AccordionItem value={item.id} key={item.id}>
-            <AccordionTrigger>
-                <div className="flex justify-between w-full pr-4">
-                    <span className="font-semibold text-left">
-                        {item.diseaseName} on {item.plantName}
-                    </span>
-                    <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0 ml-4">
-                        <Calendar className="h-4 w-4" />
-                        {format(
-                            item.timestamp.toDate(),
-                            'MMM d, yyyy, h:mm a'
-                        )}
-                    </span>
-                </div>
-            </AccordionTrigger>
-            <AccordionContent className="space-y-4 px-4">
-                <div>
-                    <h4 className="font-semibold">Symptoms</h4>
-                    <p className="text-muted-foreground text-sm">{item.symptoms}</p>
-                </div>
-                 <div>
-                    <h4 className="font-semibold">Causes</h4>
-                    <p className="text-muted-foreground text-sm">{item.causes}</p>
-                </div>
-                <div>
-                    <h4 className="font-semibold">Treatment</h4>
-                     {treatmentData ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
-                            <TreatmentList treatments={treatmentData.organic} title="Organic" />
-                            <TreatmentList treatments={treatmentData.chemical} title="Chemical" />
-                        </div>
-                    ) : <p className="text-muted-foreground text-sm">{item.treatment}</p>}
-                </div>
-                <div>
-                    <h4 className="font-semibold">Prevention</h4>
-                    <p className="text-muted-foreground text-sm">{item.prevention}</p>
-                </div>
-                <div className="text-xs text-muted-foreground">Language: {item.language}</div>
-            </AccordionContent>
-        </AccordionItem>
-    );
-};
-
-
 export default function HistoryPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const [detections, setDetections] = useState<DetectionHistory[]>([]);
   const [chats, setChats] = useState<ChatHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchHistory = async () => {
+    if (!user || !db) return;
+    setIsLoading(true);
+    try {
+      const detectionQuery = query(
+        collection(db, 'users', user.uid, 'diseaseHistory'),
+        orderBy('timestamp', 'desc')
+      );
+      const chatQuery = query(
+        collection(db, 'users', user.uid, 'chatHistory'),
+        orderBy('timestamp', 'desc')
+      );
+
+      const [detectionSnapshot, chatSnapshot] = await Promise.all([
+        getDocs(detectionQuery),
+        getDocs(chatQuery),
+      ]);
+
+      setDetections(
+        detectionSnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() } as DetectionHistory)
+        )
+      );
+      setChats(
+        chatSnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() } as ChatHistory)
+        )
+      );
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchHistory = async () => {
-      if (!user || !db) return;
-      setIsLoading(true);
-      try {
-        const detectionQuery = query(
-          collection(db, 'users', user.uid, 'diseaseHistory'),
-          orderBy('timestamp', 'desc')
-        );
-        const chatQuery = query(
-          collection(db, 'users', user.uid, 'chatHistory'),
-          orderBy('timestamp', 'desc')
-        );
-
-        const [detectionSnapshot, chatSnapshot] = await Promise.all([
-          getDocs(detectionQuery),
-          getDocs(chatQuery),
-        ]);
-
-        setDetections(
-          detectionSnapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() } as DetectionHistory)
-          )
-        );
-        setChats(
-          chatSnapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() } as ChatHistory)
-          )
-        );
-      } catch (error) {
-        console.error('Failed to fetch history:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchHistory();
   }, [user, db]);
+
+  const handleDelete = async (id: string, type: 'detection' | 'chat') => {
+    if (!user || !db) return;
+    try {
+      const path = type === 'detection' ? 'diseaseHistory' : 'chatHistory';
+      await deleteDoc(doc(db, 'users', user.uid, path, id));
+      toast({
+        title: 'Item Deleted',
+        description: 'The history record has been removed.',
+      });
+      fetchHistory(); // Refresh the list
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete the item. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   if (!user) {
     return (
@@ -244,7 +223,53 @@ export default function HistoryPage() {
               ) : (
                 <Accordion type="single" collapsible className="w-full">
                   {detections.map((item) => (
-                    <DetectionItem key={item.id} item={item} />
+                    <AccordionItem value={item.id} key={item.id}>
+                        <div className="flex items-center">
+                            <AccordionTrigger className="flex-1">
+                                <div className="flex justify-between w-full pr-4">
+                                    <span className="font-semibold text-left">
+                                        {item.diseaseName} on {item.plantName}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0 ml-4">
+                                        <Calendar className="h-4 w-4" />
+                                        {format(item.timestamp.toDate(), 'MMM d, yyyy')}
+                                    </span>
+                                </div>
+                            </AccordionTrigger>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive ml-2">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete your detection record.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDelete(item.id, 'detection')}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                      <AccordionContent className="space-y-4 px-4 pt-2">
+                        <div>
+                            <h4 className="font-semibold">Symptoms</h4>
+                            <p className="text-muted-foreground text-sm">{item.symptoms}</p>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold">Treatment</h4>
+                            <div className="text-muted-foreground text-sm prose prose-sm max-w-none">
+                                {item.treatment}
+                            </div>
+                        </div>
+                         <div className="text-xs text-muted-foreground">Language: {item.language}</div>
+                      </AccordionContent>
+                    </AccordionItem>
                   ))}
                 </Accordion>
               )}
@@ -269,19 +294,37 @@ export default function HistoryPage() {
               ) : (
                 <div className="space-y-4">
                   {chats.map((chat) => (
-                    <div key={chat.id} className="p-4 border rounded-lg">
+                    <div key={chat.id} className="p-4 border rounded-lg relative group">
                       <div className="flex justify-between items-center mb-2">
                         <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <MessageSquare className="h-4 w-4" />
                           Chat in {chat.language}
                         </p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {format(
-                            chat.timestamp.toDate(),
-                            'MMM d, yyyy, h:mm a'
-                          )}
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            {format(chat.timestamp.toDate(), 'MMM d, yyyy')}
+                            </p>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Chat?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will remove this conversation from your history forever.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDelete(chat.id, 'chat')}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                       </div>
                       <div className="space-y-2 text-sm">
                         <p><strong>You:</strong> {chat.userMessage}</p>

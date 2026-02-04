@@ -14,7 +14,8 @@ import {
   Thermometer,
    Languages,
   LogIn,
-  UserPlus
+  UserPlus,
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -65,13 +66,13 @@ export default function Home() {
                  <Button asChild size="lg">
                   <Link href="/login">
                     <LogIn className="mr-2 h-5 w-5" />
-                    Login
+                    Get Started
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="secondary">
-                  <Link href="/login">
-                     <UserPlus className="mr-2 h-5 w-5" />
-                    Sign Up
+                  <Link href="#features">
+                     <ArrowRight className="mr-2 h-5 w-5" />
+                    Learn More
                   </Link>
                 </Button>
               </div>
