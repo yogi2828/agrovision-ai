@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  "projectId": "studio-6519095482-d7f0a",
-  "appId": "1:680170897070:web:6ecf62ee3ecbe4fd5d773f",
-  "apiKey": "AIzaSyAxxCuPSG2kPHdBDTjw2Leh8AVPgMD4yxw",
-  "authDomain": "studio-6519095482-d7f0a.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "680170897070"
+  "projectId": "agrovisionai-9af7d",
+  "appId": "1:266511304753:web:2759bbddb84c2e2e416d10",
+  "apiKey": "AIzaSyBoTlZ3lGNJtoD7izNX5gY46B1OIFXYScg",
+  "authDomain": "agrovisionai-9af7d.firebaseapp.com",
+  "measurementId": "G-CRRVJ6ZR9S",
+  "messagingSenderId": "266511304753"
 };
