@@ -60,7 +60,8 @@ export default function SignUpPage() {
       let errorMessage = "Could not sign up with Google. Please try again.";
 
       if (error.code === 'auth/unauthorized-domain') {
-        errorMessage = "This domain is not authorized for Firebase Auth. Please add this domain to 'Authorized domains' in the Firebase Console (Authentication > Settings).";
+        const domain = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+        errorMessage = `This domain (${domain}) is not authorized for Firebase Auth. Please add "${domain}" to 'Authorized domains' in the Firebase Console (Authentication > Settings).`;
         setAuthError(errorMessage);
       } else if (error.code === 'auth/popup-blocked') {
         errorMessage = "Sign-up popup was blocked by your browser. Please enable popups for this site.";
