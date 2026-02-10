@@ -1,11 +1,10 @@
-
 'use client';
 
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Mail, Languages, Settings } from 'lucide-react';
+import { Loader2, User, Mail, Languages, Settings, Phone } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { useAppUser } from '@/hooks/use-app-user';
 import { signOut as firebaseSignOut } from 'firebase/auth';
@@ -39,7 +38,8 @@ export default function ProfilePage() {
     );
   }
 
-  const currentLanguageName = supportedLanguages.find(l => l.code === appUser.language)?.name || appUser.language;
+  const currentLanguageName =
+    supportedLanguages.find(l => l.code === appUser.language)?.name || appUser.language;
 
   return (
     <div className="container py-12 flex justify-center">
@@ -53,8 +53,11 @@ export default function ProfilePage() {
               </AvatarFallback>
             </Avatar>
           </div>
-          <CardTitle className="font-headline text-3xl">{appUser.displayName}</CardTitle>
+          <CardTitle className="font-headline text-3xl">
+            {appUser.displayName}
+          </CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
             <Mail className="h-5 w-5 text-primary" />
@@ -63,6 +66,7 @@ export default function ProfilePage() {
               <p className="font-semibold">{appUser.email}</p>
             </div>
           </div>
+
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
             <Languages className="h-5 w-5 text-primary" />
             <div>
@@ -70,6 +74,7 @@ export default function ProfilePage() {
               <p className="font-semibold">{currentLanguageName}</p>
             </div>
           </div>
+
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
             <User className="h-5 w-5 text-primary" />
             <div>
@@ -77,14 +82,30 @@ export default function ProfilePage() {
               <p className="font-semibold text-xs">{appUser.uid}</p>
             </div>
           </div>
+
+          {/* Helpline with Calling Icon */}
+          <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
+            <Phone className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm text-muted-foreground">Helpline Number</p>
+              <a
+                href="tel:9325516590"
+                className="font-semibold text-xs flex items-center gap-2 text-primary"
+              >
+                 9325516590
+              </a>
+            </div>
+          </div>
         </CardContent>
+
         <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
-           <Button asChild variant="outline">
+          <Button asChild variant="outline">
             <Link href="/settings">
               <Settings className="mr-2 h-4 w-4" />
               Manage Preferences
             </Link>
           </Button>
+
           <Button variant="destructive" onClick={handleSignOut}>
             Log Out
           </Button>
