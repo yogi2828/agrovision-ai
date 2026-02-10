@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -31,7 +30,7 @@ const expandFAQPrompt = ai.definePrompt({
   name: 'expandFAQPrompt',
   input: {schema: ExpandFAQInputSchema},
   output: {schema: ExpandFAQOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an AI chatbot assistant designed to provide comprehensive answers to predefined questions about plant care and diseases.
 
   The user has selected the following question:

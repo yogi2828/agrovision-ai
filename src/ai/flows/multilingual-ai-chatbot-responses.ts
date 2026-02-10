@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A multilingual AI chatbot that responds in the user's selected language.
@@ -30,7 +29,7 @@ const prompt = ai.definePrompt({
   name: 'multilingualAIChatbotResponsesPrompt',
   input: {schema: MultilingualAIChatbotResponsesInputSchema},
   output: {schema: MultilingualAIChatbotResponsesOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are AgroVision AI, an expert agriculture assistant.
   Your entire response, and all text in the structured JSON output, MUST be in the following language: {{{language}}}. This is a strict and absolute requirement. Do not use English unless the specified language is English.
   Format your response using markdown for clarity (e.g., lists, bold text).
