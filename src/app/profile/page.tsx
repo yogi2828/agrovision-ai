@@ -83,16 +83,15 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Helpline with Calling Icon */}
           <div className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
             <Phone className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Helpline Number</p>
               <a
-                href="tel:9325516590"
-                className="font-semibold text-xs flex items-center gap-2 text-primary"
+                href="tel:9322436971"
+                className="font-semibold text-lg flex items-center gap-2 text-primary hover:underline transition-all"
               >
-                 9325516590
+                 9322436971
               </a>
             </div>
           </div>
