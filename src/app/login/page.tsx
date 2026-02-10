@@ -39,12 +39,10 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, provider);
       const { user: newUser } = result;
 
-      // Check if user document already exists
       const userRef = doc(db, 'users', newUser.uid);
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists()) {
-        // Create user document in Firestore on first sign-in
         await setDoc(userRef, {
           id: newUser.uid,
           name: newUser.displayName,
@@ -59,9 +57,17 @@ export default function LoginPage() {
 
     } catch (error: any) {
       console.error(error);
+      let errorMessage = "Could not sign in with Google. Please try again.";
+      
+      if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = "This domain is not authorized for Firebase Auth. Please add it in the Firebase Console.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Sign-in popup was blocked by your browser. Please enable popups for this site.";
+      }
+
       toast({
         title: 'Sign In Failed',
-        description: "Could not sign in with Google. Please try again.",
+        description: errorMessage,
         variant: 'destructive',
       });
       setIsSigningIn(false);
