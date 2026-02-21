@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -86,21 +85,49 @@ type ChatHistory = {
   timestamp: Timestamp;
 };
 
-const TreatmentList = ({ treatments, title }: { treatments: Treatment[], title: string }) => {
-    if (!treatments || treatments.length === 0) return null;
-    return (
-        <div className="mt-2">
-            <h5 className="font-semibold text-sm">{title}</h5>
-            <ul className="space-y-2 mt-1">
-                {treatments.map((t, index) => (
-                    <li key={index} className="text-xs border-l-2 border-primary pl-3">
-                        <strong className="font-medium">{t.productName}</strong>
-                        <p>{t.instructions}</p>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
+const TreatmentDisplay = ({ treatmentJson }: { treatmentJson: string }) => {
+    try {
+        const data: TreatmentData = JSON.parse(treatmentJson);
+        const hasOrganic = data.organic && data.organic.length > 0;
+        const hasChemical = data.chemical && data.chemical.length > 0;
+
+        if (!hasOrganic && !hasChemical) return <p className="text-sm text-muted-foreground">No specific treatments recommended.</p>;
+
+        return (
+            <div className="space-y-4">
+                {hasOrganic && (
+                    <div>
+                        <h5 className="font-semibold text-sm mb-2 text-green-700">Organic Treatments</h5>
+                        <ul className="space-y-2">
+                            {data.organic.map((t, i) => (
+                                <li key={i} className="text-sm border-l-2 border-green-500 pl-3">
+                                    <p className="font-medium">{t.productName}</p>
+                                    <p className="text-xs text-muted-foreground">{t.instructions}</p>
+                                    {t.link && <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Buy Now</a>}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {hasChemical && (
+                    <div>
+                        <h5 className="font-semibold text-sm mb-2 text-red-700">Chemical Treatments</h5>
+                        <ul className="space-y-2">
+                            {data.chemical.map((t, i) => (
+                                <li key={i} className="text-sm border-l-2 border-red-500 pl-3">
+                                    <p className="font-medium">{t.productName}</p>
+                                    <p className="text-xs text-muted-foreground">{t.instructions}</p>
+                                    {t.link && <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Buy Now</a>}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        );
+    } catch (e) {
+        return <p className="text-sm text-muted-foreground">{treatmentJson}</p>;
+    }
 }
 
 export default function HistoryPage() {
@@ -210,7 +237,7 @@ export default function HistoryPage() {
             <CardHeader>
               <CardTitle>Detection History</CardTitle>
               <CardDescription>
-                A log of all your plant disease analyses.
+                A log of all your plant and tree disease analyses.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -262,10 +289,16 @@ export default function HistoryPage() {
                             <p className="text-muted-foreground text-sm">{item.symptoms}</p>
                         </div>
                         <div>
-                            <h4 className="font-semibold">Treatment</h4>
-                            <div className="text-muted-foreground text-sm prose prose-sm max-w-none">
-                                {item.treatment}
-                            </div>
+                            <h4 className="font-semibold">Causes</h4>
+                            <p className="text-muted-foreground text-sm">{item.causes}</p>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-2">Recommended Treatment</h4>
+                            <TreatmentDisplay treatmentJson={item.treatment} />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold">Prevention</h4>
+                            <p className="text-muted-foreground text-sm">{item.prevention}</p>
                         </div>
                          <div className="text-xs text-muted-foreground">Language: {item.language}</div>
                       </AccordionContent>
