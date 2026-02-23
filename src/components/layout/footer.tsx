@@ -20,7 +20,7 @@ export default function Footer() {
             </Link>
             <div className="flex items-center gap-2 text-primary font-medium">
               <Phone className="h-4 w-4" />
-              <a href="tel:9322436971">Helpline: 9322436971</a>
+              <a href="tel:9325516590">Helpline: 9325516590</a>
             </div>
           </nav>
           
