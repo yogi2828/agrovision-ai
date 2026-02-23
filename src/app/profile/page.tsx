@@ -88,10 +88,10 @@ export default function ProfilePage() {
             <div>
               <p className="text-sm text-muted-foreground">Helpline Number</p>
               <a
-                href="tel:9322436971"
+                href="tel:9325516590"
                 className="font-semibold text-lg flex items-center gap-2 text-primary hover:underline transition-all"
               >
-                 9322436971
+                 9325516590
               </a>
             </div>
           </div>
